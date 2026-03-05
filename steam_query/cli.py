@@ -144,7 +144,7 @@ def format_game_json(game: dict) -> str:
 
 async def search_command(args):
     """Search games command"""
-    async with SteamStoreClient() as client:
+    async with SteamStoreClient(country_code=args.country) as client:
         results = await client.search_games_by_name(args.query, limit=args.limit)
 
         if not results:
@@ -198,7 +198,7 @@ async def search_command(args):
 
 async def lookup_command(args):
     """Lookup game details command"""
-    async with SteamStoreClient() as client:
+    async with SteamStoreClient(country_code=args.country) as client:
         # If it's a search query, search first
         if args.query:
             print(f"🔍 Searching: {args.query}")
@@ -266,7 +266,7 @@ async def batch_command(args):
 
     print(f"📋 Will query {len(queries)} game(s)\n")
 
-    async with SteamStoreClient() as client:
+    async with SteamStoreClient(country_code=args.country) as client:
         results = []
         found = 0
 
@@ -331,11 +331,25 @@ Examples:
   # Lookup game details (by name search)
   steam-query lookup -q "Hollow Knight"
 
+  # Query with specific country/region pricing
+  steam-query lookup 1245620 --country US
+  steam-query search "Elden Ring" --country CN
+
   # Batch query
   steam-query batch "Elden Ring" "Hollow Knight" "Stardew Valley"
 
   # Batch query from file
   steam-query batch -i games.txt -o results.json
+
+Configuration:
+  You can set a default country via:
+    - Environment variable: STEAM_QUERY_COUNTRY=US
+    - Config file: ~/.steam-query/config.toml
+      [steam-query]
+      country = "US"
+
+  Supported country codes: US, CN, KR, JP, GB, DE, FR, RU, BR, etc.
+  See: https://partner.steamgames.com/doc/store/localization
 
 More info: https://github.com/carton/steam-query
         """,
@@ -344,6 +358,12 @@ More info: https://github.com/carton/steam-query
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Show verbose logs"
     )
+
+    # Common country argument for all subcommands
+    country_kwargs = {
+        "help": "Country code for pricing (e.g., US, CN, KR, JP, GB). Overrides environment/config.",
+        "type": lambda x: x.upper()
+    }
 
     subparsers = parser.add_subparsers(dest="command", help="Subcommands")
 
@@ -356,6 +376,7 @@ More info: https://github.com/carton/steam-query
         "-l", "--limit", type=int, default=10, help="Number of results (default 10)"
     )
     search_parser.add_argument("-o", "--output", help="Save results to JSON file")
+    search_parser.add_argument("-c", "--country", **country_kwargs)
 
     # Lookup command
     lookup_parser = subparsers.add_parser(
@@ -368,6 +389,7 @@ More info: https://github.com/carton/steam-query
         "-j", "--json", action="store_true", help="Output in JSON format"
     )
     lookup_parser.add_argument("-o", "--output", help="Save results to JSON file")
+    lookup_parser.add_argument("-c", "--country", **country_kwargs)
 
     # Batch query command
     batch_parser = subparsers.add_parser("batch", help="Query multiple games in batch")
@@ -379,6 +401,7 @@ More info: https://github.com/carton/steam-query
         "-i", "--input", help="Input file (JSON or text, one game name per line)"
     )
     batch_parser.add_argument("-o", "--output", required=True, help="Output JSON file")
+    batch_parser.add_argument("-c", "--country", **country_kwargs)
 
     args = parser.parse_args()
 

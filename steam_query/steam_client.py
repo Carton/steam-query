@@ -7,13 +7,53 @@ import asyncio
 import logging
 import re
 import json
+import os
 from typing import Any, Optional
 from datetime import datetime
+from pathlib import Path
 
 import aiohttp
 from ratelimit import limits, sleep_and_retry
 
 logger = logging.getLogger(__name__)
+
+
+def _get_default_country() -> str:
+    """Get default country code from environment or config file
+
+    Priority: STEAM_QUERY_COUNTRY > config file > US
+
+    Returns:
+        Country code (e.g., US, CN, KR, JP, GB)
+    """
+    # 1. Check environment variable
+    env_country = os.getenv("STEAM_QUERY_COUNTRY")
+    if env_country:
+        return env_country.upper()
+
+    # 2. Check config file
+    config_file = Path.home() / ".steam-query" / "config.toml"
+    if config_file.exists():
+        try:
+            import tomllib  # Python 3.11+
+            with open(config_file, "rb") as f:
+                config = tomllib.load(f)
+                if country := config.get("country"):
+                    return country.upper()
+        except ImportError:
+            try:
+                import toml
+                with open(config_file, "r") as f:
+                    config = toml.load(f)
+                    if country := config.get("country"):
+                        return country.upper()
+            except ImportError:
+                pass
+        except Exception:
+            pass
+
+    # 3. Default to US
+    return "US"
 
 
 class SteamStoreClient:
@@ -22,13 +62,23 @@ class SteamStoreClient:
     Query any game on the Steam store without user login
     """
 
-    def __init__(self, requests_per_second: float = 1.0):
+    def __init__(
+        self,
+        requests_per_second: float = 1.0,
+        country_code: str | None = None,
+        language: str = "english"
+    ):
         """Initialize client
 
         Args:
             requests_per_second: Request rate limit (default 1 req/sec)
+            country_code: Country code for pricing (e.g., US, CN, KR, JP)
+                         If None, will use environment variable or config file
+            language: Language for results (default: english)
         """
         self.requests_per_second = requests_per_second
+        self.country_code = country_code or _get_default_country()
+        self.language = language
         self._session: Optional[aiohttp.ClientSession] = None
 
     async def __aenter__(self):
@@ -83,8 +133,8 @@ class SteamStoreClient:
         url = "https://store.steampowered.com/api/storesearch/"
         params = {
             "term": query,
-            "l": "english",
-            "cc": "US",
+            "l": self.language,
+            "cc": self.country_code,
             "category1": "998",  # Games
         }
 
@@ -139,7 +189,7 @@ class SteamStoreClient:
 
         # Steam Store API (no API key required)
         url = "https://store.steampowered.com/api/appdetails"
-        params = {"appids": app_id, "l": "english"}
+        params = {"appids": app_id, "l": self.language, "cc": self.country_code}
 
         try:
             data = await self._get(url, params)
