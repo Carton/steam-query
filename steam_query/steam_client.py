@@ -1,6 +1,6 @@
-"""Steam Store API 客户端 - 查询任意游戏
+"""Steam Store API Client - Query any game
 
-不需要登录，可以直接查询Steam商店中的任何游戏
+No login required, can query any game on the Steam store directly
 """
 
 import asyncio
@@ -17,29 +17,29 @@ logger = logging.getLogger(__name__)
 
 
 class SteamStoreClient:
-    """Steam Store API 客户端
+    """Steam Store API Client
 
-    用于查询Steam商店中的任意游戏，无需用户登录
+    Query any game on the Steam store without user login
     """
 
     def __init__(self, requests_per_second: float = 1.0):
-        """初始化客户端
+        """Initialize client
 
         Args:
-            requests_per_second: 请求速率限制（默认1 req/sec）
+            requests_per_second: Request rate limit (default 1 req/sec)
         """
         self.requests_per_second = requests_per_second
         self._session: Optional[aiohttp.ClientSession] = None
 
     async def __aenter__(self):
-        """异步上下文管理器入口"""
+        """Async context manager entry"""
         self._session = aiohttp.ClientSession(
             timeout=aiohttp.ClientTimeout(total=30)
         )
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """异步上下文管理器退出"""
+        """Async context manager exit"""
         if self._session:
             await self._session.close()
 
@@ -48,38 +48,38 @@ class SteamStoreClient:
     async def _get(
         self, url: str, params: Optional[dict[str, Any]] = None
     ) -> dict[str, Any]:
-        """HTTP GET请求（带流控）"""
+        """HTTP GET request (with rate limiting)"""
         if not self._session:
-            raise RuntimeError("客户端未初始化，请使用 async with")
+            raise RuntimeError("Client not initialized, please use async with")
 
         try:
             async with self._session.get(url, params=params) as response:
                 response.raise_for_status()
                 return await response.json()
         except aiohttp.ClientError as e:
-            logger.error(f"HTTP错误: {e}")
+            logger.error(f"HTTP error: {e}")
             raise
         except Exception as e:
-            logger.error(f"未知错误: {e}")
+            logger.error(f"Unknown error: {e}")
             raise
 
     async def search_games_by_name(
         self, query: str, limit: int = 10
     ) -> list[dict[str, Any]]:
-        """通过游戏名称搜索
+        """Search games by name
 
-        使用Steam商店的搜索功能
+        Uses Steam store search functionality
 
         Args:
-            query: 搜索关键词
-            limit: 返回结果数量
+            query: Search keyword
+            limit: Number of results to return
 
         Returns:
-            游戏列表，包含app_id和名称
+            List of games with app_id and name
         """
-        logger.info(f"搜索游戏: {query}")
+        logger.info(f"Searching for game: {query}")
 
-        # Steam商店搜索API（非官方但稳定）
+        # Steam store search API (unofficial but stable)
         url = "https://store.steampowered.com/api/storesearch/"
         params = {
             "term": query,
@@ -106,28 +106,28 @@ class SteamStoreClient:
                         "review_score": item.get("review_score"),
                     })
 
-                logger.info(f"找到 {len(results)} 个结果")
+                logger.info(f"Found {len(results)} result(s)")
                 return results
             else:
-                logger.warning(f"未找到匹配的游戏: {query}")
+                logger.warning(f"No matching games found for: {query}")
                 return []
 
         except Exception as e:
-            logger.error(f"搜索失败: {e}")
+            logger.error(f"Search failed: {e}")
             return []
 
     async def get_app_details(self, app_id: int) -> Optional[dict[str, Any]]:
-        """获取游戏详细信息
+        """Get detailed game information
 
         Args:
             app_id: Steam App ID
 
         Returns:
-            游戏详细信息字典
+            Dictionary with detailed game information
         """
-        logger.debug(f"获取游戏详情: {app_id}")
+        logger.debug(f"Getting game details: {app_id}")
 
-        # Steam Store API (无需API key)
+        # Steam Store API (no API key required)
         url = "https://store.steampowered.com/api/appdetails"
         params = {"appids": app_id, "l": "english"}
 
@@ -138,23 +138,23 @@ class SteamStoreClient:
                 app_data = data[str(app_id)]["data"]
                 return self._parse_app_details(app_data)
 
-            logger.warning(f"游戏 {app_id} 未找到")
+            logger.warning(f"Game {app_id} not found")
             return None
 
         except Exception as e:
-            logger.error(f"获取详情失败 (app_id={app_id}): {e}")
+            logger.error(f"Failed to get details (app_id={app_id}): {e}")
             return None
 
     def _parse_app_details(self, app_data: dict[str, Any]) -> dict[str, Any]:
-        """解析游戏详细信息
+        """Parse detailed game information
 
         Args:
-            app_data: 原始API数据
+            app_data: Raw API data
 
         Returns:
-            解析后的游戏信息
+            Parsed game information
         """
-        # 提取发行日期
+        # Extract release date
         release_date_info = app_data.get("release_date", {})
         release_date = None
         if not release_date_info.get("coming_soon", False):
@@ -162,7 +162,7 @@ class SteamStoreClient:
             if date_str:
                 release_date = self._parse_date(date_str)
 
-        # 提取开发商/发行商
+        # Extract developers/publishers
         developers = [
             dev.get("name", "")
             for dev in app_data.get("developers", [])
@@ -174,36 +174,36 @@ class SteamStoreClient:
             if isinstance(pub, dict)
         ]
 
-        # 提取类型
+        # Extract genres
         genres = [
             genre.get("description", "")
             for genre in app_data.get("genres", [])
             if isinstance(genre, dict)
         ]
 
-        # 提取标签
+        # Extract tags
         tags = [
             tag.get("tag", "")
             for tag in app_data.get("tags", [])
             if isinstance(tag, dict)
         ]
 
-        # Metacritic评分
+        # Metacritic score
         metacritic = app_data.get("metacritic", {})
         metacritic_score = metacritic.get("score") if isinstance(metacritic, dict) else None
 
-        # 价格信息
+        # Price information
         price_overview = app_data.get("price_overview", {})
         price = None
         if isinstance(price_overview, dict) and price_overview.get("initial") is not None:
             price = {
-                "initial": price_overview.get("initial") / 100,  # 转换为美元
+                "initial": price_overview.get("initial") / 100,  # Convert to dollars
                 "final": price_overview.get("final") / 100,
                 "discount_percent": price_overview.get("discount_percent", 0),
                 "currency": price_overview.get("currency", "USD"),
             }
 
-        # 支持的平台
+        # Supported platforms
         platforms = app_data.get("platforms", False)
         supported_platforms = []
         if isinstance(platforms, dict):
@@ -218,7 +218,7 @@ class SteamStoreClient:
             "app_id": app_data.get("steam_appid"),
             "name": app_data.get("name"),
             "short_desc": app_data.get("short_description"),
-            "long_desc": app_data.get("detailed_description", "")[:500],  # 截取前500字符
+            "long_desc": app_data.get("detailed_description", "")[:500],  # First 500 chars
             "release_date": release_date,
             "developers": developers,
             "publishers": publishers,
@@ -231,7 +231,7 @@ class SteamStoreClient:
             "header_image": app_data.get("header_image"),
             "screenshots": [
                 s.get("path_thumbnail", s.get("path", ""))
-                for s in app_data.get("screenshots", [])[:5]  # 最多5张截图
+                for s in app_data.get("screenshots", [])[:5]  # Max 5 screenshots
                 if isinstance(s, dict)
             ],
             "website": app_data.get("website"),
@@ -239,18 +239,18 @@ class SteamStoreClient:
         }
 
     def _parse_date(self, date_str: str) -> Optional[str]:
-        """解析日期字符串
+        """Parse date string
 
         Args:
-            date_str: 日期字符串
+            date_str: Date string
 
         Returns:
-            ISO格式的日期字符串
+            ISO format date string
         """
         if not date_str:
             return None
 
-        # 尝试常见格式
+        # Try common formats
         formats = ["%d %b, %Y", "%b %d, %Y", "%Y-%m-%d", "%d %b %Y", "%b %d %Y"]
 
         for fmt in formats:
@@ -260,17 +260,17 @@ class SteamStoreClient:
             except ValueError:
                 continue
 
-        # 如果都失败，返回原始字符串
+        # If all fail, return original string
         return date_str
 
     def _extract_requirements(self, app_data: dict[str, Any]) -> dict[str, dict[str, str]]:
-        """提取系统要求
+        """Extract system requirements
 
         Args:
-            app_data: 游戏数据
+            app_data: Game data
 
         Returns:
-            系统要求字典
+            System requirements dictionary
         """
         pc_requirements = app_data.get("pc_requirements", {})
         requirements = {}
@@ -287,13 +287,13 @@ class SteamStoreClient:
         return requirements
 
     def _parse_requirements(self, req_text: str) -> dict[str, str]:
-        """解析系统要求文本
+        """Parse system requirements text
 
         Args:
-            req_text: 系统要求文本
+            req_text: System requirements text
 
         Returns:
-            结构化的要求字典
+            Structured requirements dictionary
         """
         requirements = {
             "os": "",
@@ -312,7 +312,7 @@ class SteamStoreClient:
             if not line:
                 continue
 
-            # 检查是否是新的要求类型
+            # Check if it's a new requirement type
             matched = False
             for key in requirements.keys():
                 if line.lower().startswith(f"{key}:"):
@@ -321,7 +321,7 @@ class SteamStoreClient:
                     matched = True
                     break
 
-            # 如果没有匹配到新的key，且当前有key，则继续上一个要求
+            # If no new key matched and we have a current key, continue the previous requirement
             if not matched and current_key:
                 requirements[current_key] += " " + line
 
@@ -330,13 +330,13 @@ class SteamStoreClient:
     async def get_games_details_batch(
         self, app_ids: list[int]
     ) -> dict[int, dict[str, Any]]:
-        """批量获取游戏详情
+        """Batch get game details
 
         Args:
-            app_ids: Steam App ID列表
+            app_ids: List of Steam App IDs
 
         Returns:
-            App ID到游戏详情的映射
+            Mapping of App IDs to game details
         """
         results = {}
 

@@ -1,0 +1,56 @@
+[project]
+name = "steam-query"
+version = "1.0.0"
+description = "Query detailed information for any Steam game - no login required"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Carton He", email = "cartonhe@gmail.com"}
+]
+maintainers = [
+    {name = "Carton He", email = "cartonhe@gmail.com"}
+]
+keywords = ["steam", "games", "api", "cli", "gaming"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: End Users/Desktop",
+    "Topic :: Games/Entertainment",
+    "Topic :: Utilities",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "aiohttp>=3.9.0",
+    "requests>=2.31.0",
+    "ratelimit>=2.2.0",
+    "colorlog>=6.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+steam-query = "steam_query.cli:cli_main"
+
+[project.urls]
+Homepage = "https://github.com/carton/steam-query"
+Repository = "https://github.com/carton/steam-query"
+Issues = "https://github.com/carton/steam-query/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = []

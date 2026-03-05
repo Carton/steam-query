@@ -1,157 +1,153 @@
-# 🎮 Steam Game Lookup
+# Steam Query
 
-查询Steam商店中**任意游戏**的详细信息 - 无需登录，无需API Key！
+Query detailed information for any game on the Steam store - no login required, no API key needed!
 
-## ✨ 特性
+## Features
 
-- 🔍 **搜索游戏** - 通过游戏名称搜索Steam商店
-- 📋 **详细信息** - 获取发行日期、开发商、类型、评分等
-- 💰 **价格信息** - 显示当前价格和折扣信息
-- 💻 **平台支持** - 显示Windows/Mac/Linux支持
-- 📊 **批量查询** - 一次查询多个游戏
-- 🎯 **精确匹配** - 支持通过App ID直接查询
-- ⏱️ **自动流控** - 内置速率限制，遵守API规则
-- 📄 **JSON输出** - 支持导出为JSON格式
+- 🔍 **Search Games** - Search the Steam store by game name
+- 📋 **Detailed Info** - Get release date, developer, genres, ratings, and more
+- 💰 **Price Info** - Display current price and discount information
+- 💻 **Platform Support** - Show Windows/Mac/Linux support
+- 📊 **Batch Queries** - Query multiple games at once
+- 🎯 **Exact Match** - Direct query by App ID
+- ⏱️ **Rate Limiting** - Built-in rate limiter, respects API rules
+- 📄 **JSON Output** - Export results as JSON
 
-## 🚀 快速开始
+## Quick Start
 
-### 安装
+### Installation
 
 ```bash
-# 克隆仓库
-cd /d/tmp/steam-game-lookup
+# Clone repository
+git clone https://github.com/carton/steam-query.git
+cd steam-query
 
-# 创建虚拟环境（推荐）
+# Create virtual environment (recommended)
 python -m venv .venv
 source .venv/bin/activate  # Linux/Mac
 .venv\Scripts\activate     # Windows
 
-# 安装依赖
+# Install with uv
+pip install uv
+uv pip install -e .
+
+# Or with pip
 pip install -e .
 ```
 
-### 基础用法
+### Basic Usage
 
-#### 1. 搜索游戏
-
-```bash
-# 搜索游戏
-steam-lookup search "Elden Ring"
-
-# 限制结果数量
-steam-lookup search "Hollow Knight" -l 5
-
-# 保存搜索结果
-steam-lookup search "Stardew Valley" -o results.json
-```
-
-#### 2. 查询游戏详情
+#### 1. Search Games
 
 ```bash
-# 通过App ID查询
-steam-lookup lookup 1245620
+# Search games
+steam-query search "Elden Ring"
 
-# 通过游戏名称查询（自动搜索）
-steam-lookup lookup -q "Elden Ring"
+# Limit results
+steam-query search "Hollow Knight" -l 5
 
-# JSON格式输出
-steam-lookup lookup -q "Hollow Knight" --json
-
-# 保存详情
-steam-lookup lookup 1245620 -o elden-ring.json
+# Save search results
+steam-query search "Stardew Valley" -o results.json
 ```
 
-#### 3. 批量查询
+#### 2. Lookup Game Details
 
 ```bash
-# 查询多个游戏
-steam-lookup batch "Elden Ring" "Hollow Knight" "Stardew Valley" -o results.json
+# Lookup by App ID
+steam-query lookup 1245620
 
-# 从Epic游戏JSON批量查询
-steam-lookup batch -i ../epic-games.json -o epic-with-steam-info.json
+# Lookup by game name (auto-search)
+steam-query lookup -q "Elden Ring"
 
-# 从文本文件查询（每行一个游戏名）
-steam-lookup batch -i games.txt -o results.json
+# JSON format output
+steam-query lookup -q "Hollow Knight" --json
+
+# Save details
+steam-query lookup 1245620 -o elden-ring.json
 ```
 
-## 📊 输出示例
+#### 3. Batch Queries
+
+```bash
+# Query multiple games
+steam-query batch "Elden Ring" "Hollow Knight" "Stardew Valley" -o results.json
+
+# From text file (one game name per line)
+steam-query batch -i games.txt -o results.json
+```
+
+## Output Example
 
 ```
 🎮 ============================================================
   Elden Ring
 🎮 ============================================================
 
-📋 基本信息:
+📋 Basic Info:
    App ID:      1245620
-   发行日期:    2022-02-25
-   免费:        否
-   开发商:      FromSoftware Inc.
-   发行商:      BANDAI NAMCO Entertainment Inc.
-   类型:        Action RPG, Adventure
+   Release Date: 2022-02-25
+   Free:        No
+   Developer:  FromSoftware Inc.
+   Publisher:  BANDAI NAMCO Entertainment Inc.
+   Genres:     Action RPG, Adventure
    Metascore:  🟢 96/100
 
-💻 支持平台:
+💻 Supported Platforms:
    • Windows
    • Steam Deck
 
-💰 价格: $59.99
+💰 Price: $59.99
 
-📝 简介:
+📝 Description:
    A new action RPG developed by FromSoftware Inc. and BANDAI NAMCO...
 
-🔗 商店链接: https://store.steampowered.com/app/1245620/
+🔗 Store Link: https://store.steampowered.com/app/1245620/
 ```
 
-## 🔧 配置
+## Configuration
 
-### 环境变量
+### Environment Variables
 
 ```bash
-# 设置日志级别
-export STEAM_LOOKUP_LOG_LEVEL=DEBUG
+# Set log level
+export STEAM_QUERY_LOG_LEVEL=DEBUG
 ```
 
-### 速率限制
+### Rate Limiting
 
-默认：1 request/second（遵守Steam建议）
+Default: 1 request/second (follows Steam recommendations)
 
-可以在代码中修改：
+You can modify in code:
 ```python
+from steam_query import SteamStoreClient
+
 client = SteamStoreClient(requests_per_second=2.0)  # 2 req/sec
 ```
 
-## 📁 项目结构
+## Project Structure
 
 ```
-steam-game-lookup/
-├── steam_game_lookup/
-│   ├── __init__.py       # 包初始化
-│   ├── steam_client.py   # Steam API客户端
-│   └── cli.py           # 命令行接口
-├── setup.py             # 安装配置
-├── requirements.txt     # 依赖列表
-└── README.md           # 本文件
+steam-query/
+├── steam_query/
+│   ├── __init__.py       # Package initialization
+│   ├── steam_client.py   # Steam API client
+│   └── cli.py           # Command-line interface
+├── pyproject.toml        # Project configuration
+└── README.md            # This file
 ```
 
-## 🎯 使用场景
+## Use Cases
 
-### 场景1：查询Epic游戏的Steam信息
+### Use Case 1: Find Game Release Date
 
 ```bash
-cd /d/tmp
-steam-lookup batch -i epic-games.json -o epic-with-steam.json
+steam-query lookup -q "Hollow Knight" --json | jq '.game.release_date'
 ```
 
-### 场景2：查找游戏发行日期
+### Use Case 2: Batch Query Game List
 
 ```bash
-steam-lookup lookup -q "Hollow Knight" --json | jq '.game.release_date'
-```
-
-### 场景3：批量查询游戏列表
-
-```bash
-# 创建游戏列表
+# Create game list
 cat > games.txt << EOF
 Elden Ring
 Hollow Knight
@@ -159,56 +155,38 @@ Stardew Valley
 Celeste
 EOF
 
-# 批量查询
-steam-lookup batch -i games.txt -o results.json
+# Batch query
+steam-query batch -i games.txt -o results.json
 ```
 
-## ⚠️ 限制
+## Limitations
 
-1. **速率限制** - Steam Store API没有公开的速率限制，但建议每秒不超过1次请求
-2. **搜索精度** - 使用Steam商店的搜索功能，可能不完全精确
-3. **可用性** - 依赖Steam商店API的可用性
+1. **Rate Limiting** - Steam Store API has no official rate limit, but 1 request/second is recommended
+2. **Search Accuracy** - Uses Steam store search, may not always be exact
+3. **Availability** - Depends on Steam store API availability
 
-## 🔍 类似工具对比
-
-| 工具 | 需要登录 | 需要API Key | 查询任意游戏 |
-|------|----------|-------------|--------------|
-| **steam-lookup** | ❌ | ❌ | ✅ |
-| steam-game-analyzer | ✅ | ✅ | ❌ (仅拥有) |
-| steam-cli | ❌ | ✅ | ❌ (仅拥有) |
-
-## 📚 API参考
+## API Reference
 
 ### SteamStoreClient
 
 ```python
-from steam_game_lookup import SteamStoreClient
+from steam_query import SteamStoreClient
 
 async with SteamStoreClient() as client:
-    # 搜索游戏
+    # Search games
     results = await client.search_games_by_name("Elden Ring")
 
-    # 获取详情
+    # Get details
     game = await client.get_app_details(1245620)
 
-    # 批量获取
+    # Batch query
     games = await client.get_games_details_batch([1245620, 571860])
 ```
 
-## 🤝 贡献
+## Contributing
 
-欢迎提交问题和拉取请求！
+Issues and pull requests are welcome!
 
-## 📄 许可证
+## License
 
 MIT License
-
-## 🔗 相关项目
-
-- [steam-game-analyzer](../steam-game-analyzer) - Steam游戏库分析工具
-- [steam-cli](https://github.com/mjrussell/steam-cli) - Steam库管理CLI
-
-## 🙏 致谢
-
-- Steam Store API（非官方但稳定）
-- 基于 [steam-game-analyzer](../steam-game-analyzer) 的设计灵感

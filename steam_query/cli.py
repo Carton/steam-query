@@ -1,6 +1,6 @@
-"""Steam Game Lookup CLI 命令行工具
+"""Steam Query CLI - Command-line tool
 
-查询Steam商店中任意游戏的详细信息
+Query detailed information for any game on the Steam store
 """
 
 import argparse
@@ -16,12 +16,12 @@ import colorlog
 
 from .steam_client import SteamStoreClient
 
-# 设置日志
+# Setup logging
 logger = logging.getLogger(__name__)
 
 
 def setup_logging(verbose: bool = False):
-    """设置彩色日志"""
+    """Setup colored logging"""
     log_level = logging.DEBUG if verbose else logging.INFO
 
     handler = colorlog.StreamHandler()
@@ -44,13 +44,13 @@ def setup_logging(verbose: bool = False):
 
 
 def format_game_info(game: dict) -> str:
-    """格式化游戏信息用于显示
+    """Format game information for display
 
     Args:
-        game: 游戏信息字典
+        game: Game information dictionary
 
     Returns:
-        格式化的字符串
+        Formatted string
     """
     lines = [
         "",
@@ -59,63 +59,63 @@ def format_game_info(game: dict) -> str:
         "🎮 " + "=" * 60,
     ]
 
-    # 基本信息
-    lines.append(f"\n📋 基本信息:")
+    # Basic information
+    lines.append(f"\n📋 Basic Info:")
     lines.append(f"   App ID:      {game.get('app_id', 'N/A')}")
-    lines.append(f"   发行日期:    {game.get('release_date', 'N/A')}")
-    lines.append(f"   免费:        {'是' if game.get('is_free') else '否'}")
+    lines.append(f"   Release Date: {game.get('release_date', 'N/A')}")
+    lines.append(f"   Free:        {'Yes' if game.get('is_free') else 'No'}")
 
     if game.get("developers"):
-        lines.append(f"   开发商:      {', '.join(game['developers'])}")
+        lines.append(f"   Developer:  {', '.join(game['developers'])}")
     if game.get("publishers"):
-        lines.append(f"   发行商:      {', '.join(game['publishers'])}")
+        lines.append(f"   Publisher:  {', '.join(game['publishers'])}")
 
     if game.get("genres"):
-        lines.append(f"   类型:        {', '.join(game['genres'])}")
+        lines.append(f"   Genres:     {', '.join(game['genres'])}")
 
     if game.get("metacritic_score"):
         score = game["metacritic_score"]
         emoji = "🟢" if score >= 75 else "🟡" if score >= 50 else "🔴"
         lines.append(f"   Metascore:  {emoji} {score}/100")
 
-    # 平台
+    # Platforms
     if game.get("platforms"):
-        lines.append(f"\n💻 支持平台:")
+        lines.append(f"\n💻 Supported Platforms:")
         for platform in game["platforms"]:
             lines.append(f"   • {platform}")
 
-    # 价格
+    # Price
     if game.get("price"):
         price = game["price"]
         if price.get("discount_percent", 0) > 0:
             lines.append(
-                f"\n💰 价格: ${price['final']:.2f} (原价 ${price['initial']:.2f}, -{price['discount_percent']}%)"
+                f"\n💰 Price: ${price['final']:.2f} (was ${price['initial']:.2f}, -{price['discount_percent']}%)"
             )
         else:
-            lines.append(f"\n💰 价格: ${price['final']:.2f}")
+            lines.append(f"\n💰 Price: ${price['final']:.2f}")
     elif game.get("is_free"):
-        lines.append(f"\n💰 价格: 免费")
+        lines.append(f"\n💰 Price: Free")
 
-    # 简短描述
+    # Short description
     if game.get("short_desc"):
         desc = game["short_desc"]
         if len(desc) > 100:
             desc = desc[:97] + "..."
-        lines.append(f"\n📝 简介:")
+        lines.append(f"\n📝 Description:")
         lines.append(f"   {desc}")
 
-    # 链接
+    # Link
     app_id = game.get("app_id")
     if app_id:
-        lines.append(f"\n🔗 商店链接: https://store.steampowered.com/app/{app_id}/")
+        lines.append(f"\n🔗 Store Link: https://store.steampowered.com/app/{app_id}/")
 
     lines.append("")
     return "\n".join(lines)
 
 
 def format_game_json(game: dict) -> str:
-    """格式化为JSON字符串"""
-    # 移除一些冗余字段
+    """Format as JSON string"""
+    # Remove some redundant fields
     game_copy = game.copy()
     if "long_desc" in game_copy:
         del game_copy["long_desc"]
@@ -126,15 +126,15 @@ def format_game_json(game: dict) -> str:
 
 
 async def search_command(args):
-    """搜索游戏命令"""
+    """Search games command"""
     async with SteamStoreClient() as client:
         results = await client.search_games_by_name(args.query, limit=args.limit)
 
         if not results:
-            print(f"❌ 未找到匹配的游戏: {args.query}")
+            print(f"❌ No matching games found: {args.query}")
             return 1
 
-        print(f"\n✅ 找到 {len(results)} 个结果:\n")
+        print(f"\n✅ Found {len(results)} result(s):\n")
 
         for i, game in enumerate(results, 1):
             print(f"{i}. {game['name']} (App ID: {game['app_id']})")
@@ -144,14 +144,14 @@ async def search_command(args):
             if game.get("price"):
                 price = game["price"]
                 if price.get("discount_percent", 0) > 0:
-                    print(f"   💰 ${price['final']:.2f} (原价 ${price['initial']:.2f}, -{price['discount_percent']}%)")
+                    print(f"   💰 ${price['final']:.2f} (was ${price['initial']:.2f}, -{price['discount_percent']}%)")
                 elif not price.get("final") == 0:
                     print(f"   💰 ${price['final']:.2f}")
             else:
-                print(f"   💰 免费或未定价")
+                print(f"   💰 Free or not priced")
             print()
 
-        # 保存到文件
+        # Save to file
         if args.output:
             output_data = {
                 "query": args.query,
@@ -161,43 +161,43 @@ async def search_command(args):
             }
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(output_data, f, indent=2, ensure_ascii=False)
-            print(f"✅ 结果已保存到: {args.output}")
+            print(f"✅ Results saved to: {args.output}")
 
         return 0
 
 
 async def lookup_command(args):
-    """查询游戏详情命令"""
+    """Lookup game details command"""
     async with SteamStoreClient() as client:
-        # 如果是搜索词，先搜索
+        # If it's a search query, search first
         if args.query:
-            print(f"🔍 搜索: {args.query}")
+            print(f"🔍 Searching: {args.query}")
             search_results = await client.search_games_by_name(args.query, limit=1)
 
             if not search_results:
-                print(f"❌ 未找到游戏: {args.query}")
+                print(f"❌ Game not found: {args.query}")
                 return 1
 
             app_id = search_results[0]["app_id"]
-            print(f"✅ 找到: {search_results[0]['name']} (App ID: {app_id})")
+            print(f"✅ Found: {search_results[0]['name']} (App ID: {app_id})")
         else:
             app_id = args.app_id
 
-        # 获取详细信息
-        print(f"⏳ 正在获取详细信息...")
+        # Get detailed information
+        print(f"⏳ Getting detailed information...")
         game = await client.get_app_details(app_id)
 
         if not game:
-            print(f"❌ 无法获取游戏详情 (App ID: {app_id})")
+            print(f"❌ Unable to get game details (App ID: {app_id})")
             return 1
 
-        # 显示结果
+        # Display results
         if args.json:
             print(format_game_json(game))
         else:
             print(format_game_info(game))
 
-        # 保存到文件
+        # Save to file
         if args.output:
             output_data = {
                 "app_id": app_id,
@@ -206,35 +206,35 @@ async def lookup_command(args):
             }
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(output_data, f, indent=2, ensure_ascii=False)
-            print(f"✅ 详情已保存到: {args.output}")
+            print(f"✅ Details saved to: {args.output}")
 
         return 0
 
 
 async def batch_command(args):
-    """批量查询命令"""
-    # 读取输入
+    """Batch query command"""
+    # Read input
     if args.input:
         with open(args.input, "r", encoding="utf-8") as f:
             if args.input.endswith(".json"):
                 data = json.load(f)
-                # 假设是Epic游戏格式
+                # Assume Epic games format
                 queries = [
                     g.get("metadata", {}).get("title", "")
                     for g in data
                     if g.get("metadata", {}).get("title")
                 ]
             else:
-                # 文本文件，每行一个游戏名
+                # Text file, one game name per line
                 queries = [line.strip() for line in f if line.strip()]
     else:
         queries = args.queries
 
     if not queries:
-        print("❌ 没有要查询的游戏")
+        print("❌ No games to query")
         return 1
 
-    print(f"📋 将查询 {len(queries)} 个游戏\n")
+    print(f"📋 Will query {len(queries)} game(s)\n")
 
     async with SteamStoreClient() as client:
         results = []
@@ -243,33 +243,33 @@ async def batch_command(args):
         for i, query in enumerate(queries, 1):
             print(f"[{i}/{len(queries)}] 🔍 {query}... ", end="", flush=True)
 
-            # 搜索
+            # Search
             search_results = await client.search_games_by_name(query, limit=1)
 
             if search_results:
                 app_id = search_results[0]["app_id"]
                 print(f"✅ (App ID: {app_id})", end="", flush=True)
 
-                # 获取详情
+                # Get details
                 game = await client.get_app_details(app_id)
                 if game:
                     results.append(game)
                     found += 1
                     print(f" ✓")
                 else:
-                    results.append({"query": query, "error": "无法获取详情"})
+                    results.append({"query": query, "error": "Cannot get details"})
                     print(f" ⚠️")
             else:
-                results.append({"query": query, "error": "未找到"})
+                results.append({"query": query, "error": "Not found"})
                 print(f" ❌")
 
-        # 显示统计
-        print(f"\n📊 统计:")
-        print(f"   总计: {len(queries)}")
-        print(f"   找到: {found}")
-        print(f"   未找到: {len(queries) - found}")
+        # Show statistics
+        print(f"\n📊 Statistics:")
+        print(f"   Total: {len(queries)}")
+        print(f"   Found: {found}")
+        print(f"   Not Found: {len(queries) - found}")
 
-        # 保存结果
+        # Save results
         if args.output:
             output_data = {
                 "timestamp": datetime.now().isoformat(),
@@ -279,76 +279,76 @@ async def batch_command(args):
             }
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(output_data, f, indent=2, ensure_ascii=False)
-            print(f"\n✅ 结果已保存到: {args.output}")
+            print(f"\n✅ Results saved to: {args.output}")
 
         return 0
 
 
 async def main():
-    """主函数"""
+    """Main function"""
     parser = argparse.ArgumentParser(
-        prog="steam-lookup",
-        description="查询Steam商店中任意游戏的详细信息",
+        prog="steam-query",
+        description="Query detailed information for any game on the Steam store",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-示例:
-  # 搜索游戏
-  steam-lookup search "Elden Ring"
+Examples:
+  # Search games
+  steam-query search "Elden Ring"
 
-  # 查询游戏详情（通过App ID）
-  steam-lookup lookup 1245620
+  # Lookup game details (by App ID)
+  steam-query lookup 1245620
 
-  # 查询游戏详情（通过名称搜索）
-  steam-lookup lookup -q "Hollow Knight"
+  # Lookup game details (by name search)
+  steam-query lookup -q "Hollow Knight"
 
-  # 批量查询
-  steam-lookup batch "Elden Ring" "Hollow Knight" "Stardew Valley"
+  # Batch query
+  steam-query batch "Elden Ring" "Hollow Knight" "Stardew Valley"
 
-  # 从文件批量查询
-  steam-lookup batch -i epic-games.json -o results.json
+  # Batch query from file
+  steam-query batch -i games.txt -o results.json
 
-更多信息: https://github.com/yourusername/steam-game-lookup
+More info: https://github.com/carton/steam-query
         """,
     )
 
     parser.add_argument(
-        "-v", "--verbose", action="store_true", help="显示详细日志"
+        "-v", "--verbose", action="store_true", help="Show verbose logs"
     )
 
-    subparsers = parser.add_subparsers(dest="command", help="子命令")
+    subparsers = parser.add_subparsers(dest="command", help="Subcommands")
 
-    # 搜索命令
+    # Search command
     search_parser = subparsers.add_parser(
-        "search", help="搜索游戏（返回匹配的游戏列表）"
+        "search", help="Search games (returns matching game list)"
     )
-    search_parser.add_argument("query", help="搜索关键词")
+    search_parser.add_argument("query", help="Search keyword")
     search_parser.add_argument(
-        "-l", "--limit", type=int, default=10, help="返回结果数量（默认10）"
+        "-l", "--limit", type=int, default=10, help="Number of results (default 10)"
     )
-    search_parser.add_argument("-o", "--output", help="保存结果到JSON文件")
+    search_parser.add_argument("-o", "--output", help="Save results to JSON file")
 
-    # 查询命令
+    # Lookup command
     lookup_parser = subparsers.add_parser(
-        "lookup", help="查询游戏详细信息"
+        "lookup", help="Lookup detailed game information"
     )
     lookup_group = lookup_parser.add_mutually_exclusive_group(required=True)
     lookup_group.add_argument("app_id", nargs="?", type=int, help="Steam App ID")
-    lookup_group.add_argument("-q", "--query", help="游戏名称（会先搜索）")
+    lookup_group.add_argument("-q", "--query", help="Game name (will search first)")
     lookup_parser.add_argument(
-        "-j", "--json", action="store_true", help="以JSON格式输出"
+        "-j", "--json", action="store_true", help="Output in JSON format"
     )
-    lookup_parser.add_argument("-o", "--output", help="保存结果到JSON文件")
+    lookup_parser.add_argument("-o", "--output", help="Save results to JSON file")
 
-    # 批量查询命令
-    batch_parser = subparsers.add_parser("batch", help="批量查询多个游戏")
+    # Batch query command
+    batch_parser = subparsers.add_parser("batch", help="Query multiple games in batch")
     batch_input = batch_parser.add_mutually_exclusive_group(required=True)
     batch_input.add_argument(
-        "queries", nargs="*", help="游戏名称列表"
+        "queries", nargs="*", help="List of game names"
     )
     batch_input.add_argument(
-        "-i", "--input", help="输入文件（JSON或文本，每行一个游戏名）"
+        "-i", "--input", help="Input file (JSON or text, one game name per line)"
     )
-    batch_parser.add_argument("-o", "--output", required=True, help="输出JSON文件")
+    batch_parser.add_argument("-o", "--output", required=True, help="Output JSON file")
 
     args = parser.parse_args()
 
@@ -356,10 +356,10 @@ async def main():
         parser.print_help()
         return 1
 
-    # 设置日志
+    # Setup logging
     setup_logging(args.verbose)
 
-    # 执行命令
+    # Execute command
     try:
         if args.command == "search":
             return await search_command(args)
@@ -368,15 +368,15 @@ async def main():
         elif args.command == "batch":
             return await batch_command(args)
     except KeyboardInterrupt:
-        print("\n\n⚠️  操作已取消")
+        print("\n\n⚠️  Operation cancelled")
         return 130
     except Exception as e:
-        logger.exception(f"错误: {e}")
+        logger.exception(f"Error: {e}")
         return 1
 
 
 def cli_main():
-    """CLI入口点"""
+    """CLI entry point"""
     exit(asyncio.run(main()))
 
 
