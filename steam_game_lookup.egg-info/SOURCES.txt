@@ -1,0 +1,11 @@
+README.md
+setup.py
+steam_game_lookup/__init__.py
+steam_game_lookup/cli.py
+steam_game_lookup/steam_client.py
+steam_game_lookup.egg-info/PKG-INFO
+steam_game_lookup.egg-info/SOURCES.txt
+steam_game_lookup.egg-info/dependency_links.txt
+steam_game_lookup.egg-info/entry_points.txt
+steam_game_lookup.egg-info/requires.txt
+steam_game_lookup.egg-info/top_level.txt

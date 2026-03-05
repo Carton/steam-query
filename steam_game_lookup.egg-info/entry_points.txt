@@ -1,0 +1,2 @@
+[console_scripts]
+steam-lookup = steam_game_lookup.cli:cli_main
