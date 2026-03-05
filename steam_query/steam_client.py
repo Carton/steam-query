@@ -29,6 +29,7 @@ def _get_default_country() -> str:
     # 1. Check environment variable
     env_country = os.getenv("STEAM_QUERY_COUNTRY")
     if env_country:
+        logger.debug(f"Using country from environment variable: {env_country.upper()}")
         return env_country.upper()
 
     # 2. Check config file
@@ -38,21 +39,24 @@ def _get_default_country() -> str:
             import tomllib  # Python 3.11+
             with open(config_file, "rb") as f:
                 config = tomllib.load(f)
-                if country := config.get("country"):
+                if country := config.get("steam-query", {}).get("country"):
+                    logger.debug(f"Using country from config file {config_file}: {country.upper()}")
                     return country.upper()
         except ImportError:
             try:
                 import toml
                 with open(config_file, "r") as f:
                     config = toml.load(f)
-                    if country := config.get("country"):
+                    if country := config.get("steam-query", {}).get("country"):
+                        logger.debug(f"Using country from config file {config_file}: {country.upper()}")
                         return country.upper()
             except ImportError:
-                pass
-        except Exception:
-            pass
+                logger.warning(f"toml library not installed, cannot read {config_file}")
+        except Exception as e:
+            logger.debug(f"Failed to read config file {config_file}: {e}")
 
     # 3. Default to US
+    logger.debug("Using default country: US")
     return "US"
 
 
@@ -80,6 +84,7 @@ class SteamStoreClient:
         self.country_code = country_code or _get_default_country()
         self.language = language
         self._session: Optional[aiohttp.ClientSession] = None
+        logger.debug(f"SteamStoreClient initialized with country_code={self.country_code}, language={self.language}")
 
     async def __aenter__(self):
         """Async context manager entry"""
