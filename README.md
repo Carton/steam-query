@@ -59,6 +59,11 @@ steam-query lookup 1245620
 # Lookup by game name (auto-search)
 steam-query lookup -q "Elden Ring"
 
+# Query with specific country pricing
+steam-query lookup 1245620 --country US
+steam-query lookup 1245620 --country KR
+steam-query lookup 1245620 --country JP
+
 # JSON format output
 steam-query lookup -q "Hollow Knight" --json
 
@@ -74,6 +79,9 @@ steam-query batch "Elden Ring" "Hollow Knight" "Stardew Valley" -o results.json
 
 # From text file (one game name per line)
 steam-query batch -i games.txt -o results.json
+
+# With specific country pricing
+steam-query batch "Elden Ring" "Hollow Knight" -o results.json --country CN
 ```
 
 ## Output Example
@@ -96,7 +104,7 @@ steam-query batch -i games.txt -o results.json
    • Windows
    • Steam Deck
 
-💰 Price: $59.99
+💰 Price: 59.99 USD
 
 📝 Description:
    A new action RPG developed by FromSoftware Inc. and BANDAI NAMCO...
@@ -106,14 +114,48 @@ steam-query batch -i games.txt -o results.json
 
 ## Configuration
 
+### Country/Region Settings
+
+Steam prices vary by region. You can specify which country's pricing to use:
+
+**1. Command-line parameter (highest priority):**
+```bash
+steam-query lookup 1245620 --country US
+steam-query search "Elden Ring" --country KR
+```
+
+**2. Environment variable:**
+```bash
+export STEAM_QUERY_COUNTRY=JP
+steam-query lookup 1245620
+```
+
+**3. Config file:**
+```bash
+# Create config directory
+mkdir -p ~/.steam-query
+
+# Create config file
+cat > ~/.steam-query/config.toml << EOF
+[steam-query]
+country = "US"
+EOF
+```
+
+**Priority:** CLI parameter > Environment variable > Config file > Default (US)
+
+**Supported country codes:** US, CN, KR, JP, GB, DE, FR, RU, BR, AU, CA, etc.
+See [Steam Country Codes](https://partner.steamgames.com/doc/store/localization) for complete list.
+
 ### Environment Variables
 
 ```bash
+# Set default country for pricing
+export STEAM_QUERY_COUNTRY=US
+
 # Set log level
 export STEAM_QUERY_LOG_LEVEL=DEBUG
 ```
-
-### Rate Limiting
 
 Default: 1 request/second (follows Steam recommendations)
 
@@ -172,16 +214,31 @@ steam-query batch -i games.txt -o results.json
 ```python
 from steam_query import SteamStoreClient
 
-async with SteamStoreClient() as client:
+# Initialize with country/region settings
+async with SteamStoreClient(country_code="US") as client:
     # Search games
-    results = await client.search_games_by_name("Elden Ring")
+    results = await client.search_games_by_name("Elden Ring", limit=10)
 
     # Get details
     game = await client.get_app_details(1245620)
 
     # Batch query
     games = await client.get_games_details_batch([1245620, 571860])
+
+# Parameters:
+# - requests_per_second: Rate limit (default: 1.0)
+# - country_code: Country code for pricing (e.g., "US", "CN", "KR", "JP")
+# - language: Language for results (default: "english")
 ```
+
+### Configuration Priority
+
+When calling `SteamStoreClient(country_code="...")`:
+
+1. **Explicit parameter** - `SteamStoreClient(country_code="JP")`
+2. **Environment variable** - `STEAM_QUERY_COUNTRY=US`
+3. **Config file** - `~/.steam-query/config.toml`
+4. **Default** - `US`
 
 ## Contributing
 
