@@ -87,12 +87,39 @@ def format_game_info(game: dict) -> str:
     # Price
     if game.get("price"):
         price = game["price"]
-        if price.get("discount_percent", 0) > 0:
-            lines.append(
-                f"\n💰 Price: ${price['final']:.2f} (was ${price['initial']:.2f}, -{price['discount_percent']}%)"
-            )
+        currency = price.get("currency", "USD")
+
+        # Currency symbols
+        currency_symbols = {
+            "USD": "$", "EUR": "€", "GBP": "£", "JPY": "¥",
+            "KRW": "₩", "CNY": "¥", "CAD": "$", "AUD": "$",
+            "CHF": "Fr", "SEK": "kr", "NOK": "kr", "DKK": "kr",
+            "PLN": "zł", "RUB": "₽", "BRL": "R$", "MXN": "$",
+            "INR": "₹", "TRY": "₺", "SGD": "$", "HKD": "$",
+        }
+        symbol = currency_symbols.get(currency, currency + " ")
+
+        # Format price based on currency (some don't use decimals)
+        no_decimal_currencies = {"JPY", "KRW", "CLP", "ISK", "BIF", "DJF",
+                                 "GNF", "KHR", "KPW", "LAK", "MGA", "MZN",
+                                 "RWF", "UGX", "VND", "VUV", "XAF", "XOF", "XPF"}
+
+        if currency in no_decimal_currencies:
+            # No decimals for these currencies
+            if price.get("discount_percent", 0) > 0:
+                lines.append(
+                    f"\n💰 Price: {symbol}{int(price['final'])} (was {symbol}{int(price['initial'])}, -{price['discount_percent']}%)"
+                )
+            else:
+                lines.append(f"\n💰 Price: {symbol}{int(price['final'])}")
         else:
-            lines.append(f"\n💰 Price: ${price['final']:.2f}")
+            # Standard 2 decimal places
+            if price.get("discount_percent", 0) > 0:
+                lines.append(
+                    f"\n💰 Price: {symbol}{price['final']:.2f} (was {symbol}{price['initial']:.2f}, -{price['discount_percent']}%)"
+                )
+            else:
+                lines.append(f"\n💰 Price: {symbol}{price['final']:.2f}")
     elif game.get("is_free"):
         lines.append(f"\n💰 Price: Free")
 
@@ -141,12 +168,35 @@ async def search_command(args):
             if game.get("short_desc"):
                 desc = game["short_desc"][:80] + "..." if len(game["short_desc"]) > 80 else game["short_desc"]
                 print(f"   {desc}")
-            if game.get("price"):
+            if game.get("price") and game["price"].get("final") is not None:
                 price = game["price"]
-                if price.get("discount_percent", 0) > 0:
-                    print(f"   💰 ${price['final']:.2f} (was ${price['initial']:.2f}, -{price['discount_percent']}%)")
-                elif not price.get("final") == 0:
-                    print(f"   💰 ${price['final']:.2f}")
+                currency = price.get("currency", "USD")
+
+                # Currency symbols
+                currency_symbols = {
+                    "USD": "$", "EUR": "€", "GBP": "£", "JPY": "¥",
+                    "KRW": "₩", "CNY": "¥", "CAD": "$", "AUD": "$",
+                    "CHF": "Fr", "SEK": "kr", "NOK": "kr", "DKK": "kr",
+                    "PLN": "zł", "RUB": "₽", "BRL": "R$", "MXN": "$",
+                    "INR": "₹", "TRY": "₺", "SGD": "$", "HKD": "$",
+                }
+                symbol = currency_symbols.get(currency, currency + " ")
+
+                # No decimals for certain currencies
+                no_decimal_currencies = {"JPY", "KRW", "CLP", "ISK", "BIF", "DJF",
+                                         "GNF", "KHR", "KPW", "LAK", "MGA", "MZN",
+                                         "RWF", "UGX", "VND", "VUV", "XAF", "XOF", "XPF"}
+
+                if currency in no_decimal_currencies:
+                    if price.get("discount_percent", 0) > 0:
+                        print(f"   💰 {symbol}{int(price['final'])} (was {symbol}{int(price['initial'])}, -{price['discount_percent']}%)")
+                    else:
+                        print(f"   💰 {symbol}{int(price['final'])}")
+                else:
+                    if price.get("discount_percent", 0) > 0:
+                        print(f"   💰 {symbol}{price['final']:.2f} (was {symbol}{price['initial']:.2f}, -{price['discount_percent']}%)")
+                    else:
+                        print(f"   💰 {symbol}{price['final']:.2f}")
             else:
                 print(f"   💰 Free or not priced")
             print()

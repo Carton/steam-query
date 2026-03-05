@@ -96,11 +96,21 @@ class SteamStoreClient:
                 results = []
 
                 for item in items:
+                    # Process price data - convert from cents to dollars
+                    price_data = item.get("price")
+                    if price_data and isinstance(price_data, dict):
+                        price_data = {
+                            "initial": price_data.get("initial", 0) / 100 if price_data.get("initial") else None,
+                            "final": price_data.get("final", 0) / 100 if price_data.get("final") else None,
+                            "discount_percent": price_data.get("discount_percent", 0),
+                            "currency": price_data.get("currency", "USD"),
+                        }
+
                     results.append({
                         "app_id": item.get("id"),
                         "name": item.get("name"),
                         "short_desc": item.get("short_description"),
-                        "price": item.get("price"),
+                        "price": price_data,
                         "platforms": item.get("platforms", []),
                         "metacritic": item.get("metacritic"),
                         "review_score": item.get("review_score"),
@@ -144,6 +154,19 @@ class SteamStoreClient:
         except Exception as e:
             logger.error(f"Failed to get details (app_id={app_id}): {e}")
             return None
+
+    def _currency_uses_decimals(self, currency: str) -> bool:
+        """Check if currency uses decimal units (cents)
+
+        Some currencies like JPY, KRW don't have smaller units
+        """
+        # Currencies that don't use decimal units
+        no_decimal_currencies = {
+            "JPY", "KRW", "CLP", "ISK", "BIF", "DJF", "GNF",
+            "KHR", "KPW", "LAK", "MGA", "MZN", "RWF", "UGX",
+            "VND", "VUV", "XAF", "XOF", "XPF"
+        }
+        return currency not in no_decimal_currencies
 
     def _parse_app_details(self, app_data: dict[str, Any]) -> dict[str, Any]:
         """Parse detailed game information
@@ -193,14 +216,27 @@ class SteamStoreClient:
         metacritic_score = metacritic.get("score") if isinstance(metacritic, dict) else None
 
         # Price information
+        # Note: appdetails API returns price in cents for some currencies, but not for others
+        # Currencies like JPY, KRW don't use decimal units
         price_overview = app_data.get("price_overview", {})
         price = None
         if isinstance(price_overview, dict) and price_overview.get("initial") is not None:
+            currency = price_overview.get("currency", "USD")
+            uses_decimals = self._currency_uses_decimals(currency)
+
+            initial = price_overview.get("initial")
+            final = price_overview.get("final")
+
+            # Convert to main currency units if using decimals (e.g., cents to dollars)
+            if uses_decimals:
+                initial = initial / 100 if initial else None
+                final = final / 100 if final else None
+
             price = {
-                "initial": price_overview.get("initial") / 100,  # Convert to dollars
-                "final": price_overview.get("final") / 100,
+                "initial": initial,
+                "final": final,
                 "discount_percent": price_overview.get("discount_percent", 0),
-                "currency": price_overview.get("currency", "USD"),
+                "currency": currency,
             }
 
         # Supported platforms
