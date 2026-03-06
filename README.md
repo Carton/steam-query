@@ -112,6 +112,108 @@ steam-query batch "Elden Ring" "Hollow Knight" -o results.json --country CN
 🔗 Store Link: https://store.steampowered.com/app/1245620/
 ```
 
+
+## Library Usage
+
+You can also use `steam-query` as a Python library in your own projects!
+
+### Quick Start
+
+```python
+from steam_query import SteamQuery
+
+# Create client
+client = SteamQuery(country_code="US")
+
+# Search games
+results = client.search("Elden Ring", limit=5)
+for game in results:
+    print(f"{game.name}: ${game.price.final if game.price else 'Free'}")
+
+# Get game details
+game = client.get(1245620)  # Elden Ring
+print(f"{game.name}")
+print(f"Genres: {', '.join(game.genres)}")
+print(f"Metacritic: {game.metacritic_score}/100")
+
+# Batch query
+games = client.get_batch([1245620, 1091500, 1593500])
+for app_id, game in games.items():
+    print(f"{app_id}: {game.name}")
+
+# Find first match
+game = client.find("Hades")
+if game:
+    print(f"Found: {game.name}")
+```
+
+### Caching
+
+The `SteamQuery` client includes built-in LRU cache with TTL:
+
+```python
+# Custom cache settings
+client = SteamQuery(
+    cache_size=256,    # Cache up to 256 items
+    cache_ttl=600,     # Cache for 10 minutes (600 seconds)
+)
+
+# First call - hits API
+game1 = client.get(1245620)
+
+# Second call - hits cache (much faster!)
+game2 = client.get(1245620)
+```
+
+### Error Handling
+
+```python
+from steam_query import SteamQuery
+from steam_query.exceptions import GameNotFoundError, NetworkError, APIError
+
+client = SteamQuery()
+
+try:
+    game = client.get(999999999)
+except GameNotFoundError as e:
+    print(f"Game not found: {e.app_id}")
+except NetworkError as e:
+    print(f"Network error: {e}")
+except APIError as e:
+    print(f"API error (status {e.status_code}): {e}")
+```
+
+### High-Level API Functions
+
+For simple use cases, you can use the high-level functions:
+
+```python
+from steam_query import search_games, get_game_info, get_games_info
+
+# Search games
+results = search_games("Elden Ring", limit=3)
+
+# Get single game
+game = get_game_info(1245620)
+if game:
+    print(f"{game.name}: {game.genres}")
+
+# Get multiple games
+games = get_games_info([1245620, 1091500, 1593500])
+```
+
+### Type Hints
+
+The library includes complete type hints for better IDE support:
+
+```python
+from steam_query import SteamQuery, Game, SearchResult
+
+client: SteamQuery = SteamQuery()
+results: list[SearchResult] = client.search("Elden Ring")
+game: Game = client.get(1245620)
+```
+
 ## Configuration
 
 ### Country/Region Settings
