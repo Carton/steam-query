@@ -207,13 +207,16 @@ class SearchResult:
             else None
         )
 
+        metacritic = data.get("metacritic")
+        metacritic_score = metacritic.get("score") if isinstance(metacritic, dict) else None
+
         return cls(
             app_id=data["app_id"],
             name=data["name"],
             short_desc=data.get("short_desc", ""),
             price=price,
             platforms=data.get("platforms", []),
-            metacritic_score=data.get("metacritic", {}).get("score"),
+            metacritic_score=metacritic_score,
             review_score=data.get("review_score"),
         )
 

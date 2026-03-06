@@ -147,15 +147,16 @@ if game:
     print(f"Found: {game.name}")
 ```
 
-### Caching
+### Caching and Rate Limiting
 
-The `SteamQuery` client includes built-in LRU cache with TTL:
+The `SteamQuery` client includes built-in LRU cache with TTL, and supports custom rate limits:
 
 ```python
-# Custom cache settings
+# Custom cache and rate limit settings
 client = SteamQuery(
-    cache_size=256,    # Cache up to 256 items
-    cache_ttl=600,     # Cache for 10 minutes (600 seconds)
+    cache_size=256,             # Cache up to 256 items
+    cache_ttl=600,              # Cache for 10 minutes (600 seconds)
+    requests_per_second=2.0,    # Allow 2 requests per second (default is 1.0)
 )
 
 # First call - hits API
@@ -191,7 +192,7 @@ For simple use cases, you can use the high-level functions:
 from steam_query import search_games, get_game_info, get_games_info
 
 # Search games
-results = search_games("Elden Ring", limit=3)
+results = search_games("Elden Ring", limit=3, requests_per_second=2.0)
 
 # Get single game
 game = get_game_info(1245620)

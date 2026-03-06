@@ -154,7 +154,9 @@ def format_game_json(game: Game) -> str:
 
 async def search_command(args):
     """Search games command"""
-    async with SteamStoreClient(country_code=args.country) as client:
+    async with SteamStoreClient(
+        country_code=args.country, requests_per_second=args.rate_limit
+    ) as client:
         results_dict = await client.search_games_by_name(args.query, limit=args.limit)
 
         if not results_dict:
@@ -217,7 +219,9 @@ async def search_command(args):
 
 async def lookup_command(args):
     """Lookup game details command"""
-    async with SteamStoreClient(country_code=args.country) as client:
+    async with SteamStoreClient(
+        country_code=args.country, requests_per_second=args.rate_limit
+    ) as client:
         # If it's a search query, search first
         if args.query:
             print(f"🔍 Searching: {args.query}")
@@ -288,7 +292,9 @@ async def batch_command(args):
 
     print(f"📋 Will query {len(queries)} game(s)\n")
 
-    async with SteamStoreClient(country_code=args.country) as client:
+    async with SteamStoreClient(
+        country_code=args.country, requests_per_second=args.rate_limit
+    ) as client:
         results = []
         found = 0
 
@@ -360,8 +366,8 @@ Examples:
   # Batch query
   steam-query batch "Elden Ring" "Hollow Knight" "Stardew Valley"
 
-  # Batch query from file
-  steam-query batch -i games.txt -o results.json
+  # Query with custom rate limit
+  steam-query batch -i games.txt -o out.json --rate-limit 0.5
 
 Configuration:
   You can set a default country via:
@@ -379,6 +385,14 @@ More info: https://github.com/carton/steam-query
 
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Show verbose logs"
+    )
+
+    parser.add_argument(
+        "-r",
+        "--rate-limit",
+        type=float,
+        default=1.0,
+        help="Requests per second (default: 1.0)",
     )
 
     # Common country argument for all subcommands

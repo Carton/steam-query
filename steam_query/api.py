@@ -15,6 +15,7 @@ def search_games(
     limit: int = 10,
     country_code: str | None = None,
     language: str = "english",
+    requests_per_second: float = 1.0,
 ) -> list[SearchResult]:
     """Search for Steam games by name (synchronous wrapper).
 
@@ -26,6 +27,7 @@ def search_games(
         limit: Maximum number of results (default 10)
         country_code: Country code for pricing (e.g., US, CN, KR, JP)
         language: Language for results (default: english)
+        requests_per_second: Rate limit (default 1 req/sec)
 
     Returns:
         List of search results with typed fields
@@ -36,7 +38,7 @@ def search_games(
         >>> for game in results:
         ...     print(f"{game.name} - {game.price}")
     """
-    return asyncio.run(_search_games_async(query, limit, country_code, language))
+    return asyncio.run(_search_games_async(query, limit, country_code, language, requests_per_second))
 
 
 async def _search_games_async(
@@ -44,10 +46,11 @@ async def _search_games_async(
     limit: int,
     country_code: str | None,
     language: str,
+    requests_per_second: float = 1.0,
 ) -> list[SearchResult]:
     """Internal async implementation of search_games."""
     async with SteamStoreClient(
-        country_code=country_code, language=language
+        country_code=country_code, language=language, requests_per_second=requests_per_second
     ) as client:
         results = await client.search_games_by_name(query, limit)
         return [SearchResult.from_dict(r) for r in results]
@@ -57,6 +60,7 @@ def get_game_info(
     app_id: int,
     country_code: str | None = None,
     language: str = "english",
+    requests_per_second: float = 1.0,
 ) -> Game | None:
     """Get detailed information for a Steam game (synchronous wrapper).
 
@@ -67,6 +71,7 @@ def get_game_info(
         app_id: Steam App ID
         country_code: Country code for pricing (e.g., US, CN, KR, JP)
         language: Language for results (default: english)
+        requests_per_second: Rate limit (default 1 req/sec)
 
     Returns:
         Game object with complete information, or None if not found
@@ -79,7 +84,7 @@ def get_game_info(
         ...     print(f"Metacritic: {game.metacritic_score}/100")
     """
     return asyncio.run(
-        _get_game_info_async(app_id, country_code, language)
+        _get_game_info_async(app_id, country_code, language, requests_per_second)
     )
 
 
@@ -87,10 +92,11 @@ async def _get_game_info_async(
     app_id: int,
     country_code: str | None,
     language: str,
+    requests_per_second: float = 1.0,
 ) -> Game | None:
     """Internal async implementation of get_game_info."""
     async with SteamStoreClient(
-        country_code=country_code, language=language
+        country_code=country_code, language=language, requests_per_second=requests_per_second
     ) as client:
         data = await client.get_app_details(app_id)
         return Game.from_dict(data) if data else None
@@ -100,6 +106,7 @@ def get_games_info(
     app_ids: list[int],
     country_code: str | None = None,
     language: str = "english",
+    requests_per_second: float = 1.0,
 ) -> dict[int, Game]:
     """Get detailed information for multiple Steam games (synchronous wrapper).
 
@@ -110,6 +117,7 @@ def get_games_info(
         app_ids: List of Steam App IDs
         country_code: Country code for pricing (e.g., US, CN, KR, JP)
         language: Language for results (default: english)
+        requests_per_second: Rate limit (default 1 req/sec)
 
     Returns:
         Dictionary mapping App IDs to Game objects (only successful lookups)
@@ -121,7 +129,7 @@ def get_games_info(
         ...     print(f"{app_id}: {game.name}")
     """
     return asyncio.run(
-        _get_games_info_async(app_ids, country_code, language)
+        _get_games_info_async(app_ids, country_code, language, requests_per_second)
     )
 
 
@@ -129,10 +137,11 @@ async def _get_games_info_async(
     app_ids: list[int],
     country_code: str | None,
     language: str,
+    requests_per_second: float = 1.0,
 ) -> dict[int, Game]:
     """Internal async implementation of get_games_info."""
     async with SteamStoreClient(
-        country_code=country_code, language=language
+        country_code=country_code, language=language, requests_per_second=requests_per_second
     ) as client:
         results = await client.get_games_details_batch(app_ids)
         return {app_id: Game.from_dict(data) for app_id, data in results.items()}

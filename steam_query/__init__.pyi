@@ -105,6 +105,7 @@ class SteamQuery:
         language: str = "english",
         cache_size: int = 128,
         cache_ttl: int = 300,
+        requests_per_second: float = 1.0,
     ) -> None: ...
     def search(
         self, query: str, limit: int = 10
@@ -120,18 +121,21 @@ def search_games(
     limit: int = 10,
     country_code: str | None = None,
     language: str = "english",
+    requests_per_second: float = 1.0,
 ) -> list[SearchResult]: ...
 
 def get_game_info(
     app_id: int,
     country_code: str | None = None,
     language: str = "english",
+    requests_per_second: float = 1.0,
 ) -> Game | None: ...
 
 def get_games_info(
     app_ids: list[int],
     country_code: str | None = None,
     language: str = "english",
+    requests_per_second: float = 1.0,
 ) -> dict[int, Game]: ...
 
 

@@ -74,9 +74,12 @@ async def _search_async(
     limit: int,
     country_code: str | None,
     language: str,
+    requests_per_second: float = 1.0,
 ) -> list[dict]:
     """Internal async implementation for search."""
-    async with SteamStoreClient(country_code=country_code, language=language) as client:
+    async with SteamStoreClient(
+        country_code=country_code, language=language, requests_per_second=requests_per_second
+    ) as client:
         return await client.search_games_by_name(query, limit)
 
 
@@ -84,9 +87,12 @@ async def _get_game_async(
     app_id: int,
     country_code: str | None,
     language: str,
+    requests_per_second: float = 1.0,
 ) -> dict | None:
     """Internal async implementation for get."""
-    async with SteamStoreClient(country_code=country_code, language=language) as client:
+    async with SteamStoreClient(
+        country_code=country_code, language=language, requests_per_second=requests_per_second
+    ) as client:
         return await client.get_app_details(app_id)
 
 
@@ -94,11 +100,14 @@ async def _get_batch_async(
     app_ids: list[int],
     country_code: str | None,
     language: str,
+    requests_per_second: float = 1.0,
 ) -> dict[int, dict]:
     """Internal async implementation for get_batch (serial query)."""
     results = {}
 
-    async with SteamStoreClient(country_code=country_code, language=language) as client:
+    async with SteamStoreClient(
+        country_code=country_code, language=language, requests_per_second=requests_per_second
+    ) as client:
         for app_id in app_ids:
             try:
                 data = await client.get_app_details(app_id)
@@ -123,6 +132,7 @@ class SteamQuery:
         language: str = "english",
         cache_size: int = 128,
         cache_ttl: int = 300,
+        requests_per_second: float = 1.0,
     ):
         """Initialize client.
 
@@ -131,6 +141,7 @@ class SteamQuery:
             language: Language (default: english)
             cache_size: Cache size (default: 128)
             cache_ttl: Cache TTL in seconds (default: 300)
+            requests_per_second: Rate limit (default 1 req/sec)
         """
         from .steam_client import _get_default_country
 
@@ -139,6 +150,7 @@ class SteamQuery:
         self._cache_size = cache_size
         self._cache_ttl = cache_ttl
         self._cache = _Cache(maxsize=cache_size, ttl=cache_ttl)
+        self._requests_per_second = requests_per_second
 
     def search(self, query: str, limit: int = 10) -> list[SearchResult]:
         """Search games (simple style).
@@ -162,7 +174,7 @@ class SteamQuery:
 
         # Fetch from API
         results = asyncio.run(
-            _search_async(query, limit, self.country_code, self.language)
+            _search_async(query, limit, self.country_code, self.language, self._requests_per_second)
         )
         result_objects = [SearchResult.from_dict(r) for r in results]
 
@@ -191,7 +203,7 @@ class SteamQuery:
             return cached
 
         # Fetch from API
-        data = asyncio.run(_get_game_async(app_id, self.country_code, self.language))
+        data = asyncio.run(_get_game_async(app_id, self.country_code, self.language, self._requests_per_second))
 
         if data is None:
             raise GameNotFoundError(app_id=app_id)
@@ -216,7 +228,7 @@ class SteamQuery:
             Dict mapping App ID -> Game (successful queries only)
         """
         results = asyncio.run(
-            _get_batch_async(app_ids, self.country_code, self.language)
+            _get_batch_async(app_ids, self.country_code, self.language, self._requests_per_second)
         )
         return {app_id: Game.from_dict(data) for app_id, data in results.items()}
 
