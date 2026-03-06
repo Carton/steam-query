@@ -244,3 +244,122 @@ class TestSteamQueryFind:
         game = client.find("NonExistentGame")
 
         assert game is None
+
+
+class TestSteamQueryCache:
+    """Test caching functionality"""
+
+    @patch("steam_query.client_sync._get_game_async")
+    def test_cache_returns_same_result(self, mock_get):
+        """Test that cached result is identical"""
+        mock_get.return_value = {
+            "app_id": 1245620,
+            "name": "ELDEN RING",
+            "short_desc": "",
+            "long_desc": "",
+            "release_date": "2022-02-25",
+            "developers": [],
+            "publishers": [],
+            "genres": [],
+            "tags": [],
+            "metacritic_score": None,
+            "price": None,
+            "platforms": [],
+            "is_free": False,
+            "header_image": "",
+            "screenshots": [],
+            "website": None,
+            "requirements": {},
+        }
+
+        client = SteamQuery(cache_ttl=60)
+
+        # First call
+        game1 = client.get(1245620)
+        # Second call (should hit cache)
+        game2 = client.get(1245620)
+
+        assert game1 == game2
+        # Should only call async function once
+        assert mock_get.call_count == 1
+
+    @patch("steam_query.client_sync._get_game_async")
+    def test_cache_expires_after_ttl(self, mock_get):
+        """Test that cache expires after TTL"""
+        import time
+
+        mock_get.return_value = {
+            "app_id": 1245620,
+            "name": "ELDEN RING",
+            "short_desc": "",
+            "long_desc": "",
+            "release_date": "2022-02-25",
+            "developers": [],
+            "publishers": [],
+            "genres": [],
+            "tags": [],
+            "metacritic_score": None,
+            "price": None,
+            "platforms": [],
+            "is_free": False,
+            "header_image": "",
+            "screenshots": [],
+            "website": None,
+            "requirements": {},
+        }
+
+        client = SteamQuery(cache_ttl=1, cache_size=10)
+
+        # First call
+        client.get(1245620)
+        # Wait for cache to expire
+        time.sleep(2)
+        # Second call (should not hit cache)
+        client.get(1245620)
+
+        assert mock_get.call_count == 2
+
+    @patch("steam_query.client_sync._get_game_async")
+    def test_cache_lru_eviction(self, mock_get):
+        """Test LRU eviction when cache is full"""
+        client = SteamQuery(cache_size=2, cache_ttl=60)
+
+        mock_game = {
+            "app_id": 1,
+            "name": "Game 1",
+            "short_desc": "",
+            "long_desc": "",
+            "release_date": None,
+            "developers": [],
+            "publishers": [],
+            "genres": [],
+            "tags": [],
+            "metacritic_score": None,
+            "price": None,
+            "platforms": [],
+            "is_free": False,
+            "header_image": "",
+            "screenshots": [],
+            "website": None,
+            "requirements": {},
+        }
+
+        def get_mock(app_id):
+            return {**mock_game, "app_id": app_id, "name": f"Game {app_id}"}
+
+        mock_get.side_effect = [
+            get_mock(1),
+            get_mock(2),
+            get_mock(3),
+            get_mock(1),  # Should fetch again (evicted)
+        ]
+
+        # Fill cache (size=2)
+        client.get(1)
+        client.get(2)
+        # This should evict app_id=1
+        client.get(3)
+        # This should fetch from API (evicted)
+        client.get(1)
+
+        assert mock_get.call_count == 4
