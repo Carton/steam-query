@@ -32,6 +32,7 @@ Advanced Usage (async):
 """
 
 from steam_query.api import get_game_info, get_games_info, search_games
+from steam_query.client_sync import SteamQuery
 from steam_query.steam_client import SteamStoreClient
 from steam_query.types import Game, Price, SearchResult, SystemRequirements
 
@@ -42,6 +43,8 @@ __all__ = [
     "__version__",
     # Core client (advanced usage)
     "SteamStoreClient",
+    # Sync client (simple API)
+    "SteamQuery",
     # High-level API (recommended for most users)
     "search_games",
     "get_game_info",
