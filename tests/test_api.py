@@ -303,3 +303,58 @@ class TestSearchResultModel:
         assert result.price is not None
         assert result.price.final == 59.99
         assert result.metacritic_score == 96
+
+
+class TestAPIClientInitialization:
+    """Tests for API wrapper passing correct arguments to SteamStoreClient."""
+
+    @patch("steam_query.api.SteamStoreClient")
+    @pytest.mark.asyncio
+    async def test_search_games_passes_rate_limit(self, mock_client_class):
+        """Test that _search_games_async passes requests_per_second."""
+        from steam_query.api import _search_games_async
+
+        # Setup mock context manager
+        mock_client_instance = AsyncMock()
+        mock_client_instance.search_games_by_name.return_value = []
+        mock_client_class.return_value.__aenter__.return_value = mock_client_instance
+
+        await _search_games_async("test", 10, "US", "english", requests_per_second=2.5)
+
+        mock_client_class.assert_called_once_with(
+            country_code="US", language="english", requests_per_second=2.5
+        )
+
+    @patch("steam_query.api.SteamStoreClient")
+    @pytest.mark.asyncio
+    async def test_get_game_info_passes_rate_limit(self, mock_client_class):
+        """Test that _get_game_info_async passes requests_per_second."""
+        from steam_query.api import _get_game_info_async
+
+        # Setup mock context manager
+        mock_client_instance = AsyncMock()
+        mock_client_instance.get_app_details.return_value = None
+        mock_client_class.return_value.__aenter__.return_value = mock_client_instance
+
+        await _get_game_info_async(123, "US", "english", requests_per_second=3.0)
+
+        mock_client_class.assert_called_once_with(
+            country_code="US", language="english", requests_per_second=3.0
+        )
+
+    @patch("steam_query.api.SteamStoreClient")
+    @pytest.mark.asyncio
+    async def test_get_games_info_passes_rate_limit(self, mock_client_class):
+        """Test that _get_games_info_async passes requests_per_second."""
+        from steam_query.api import _get_games_info_async
+
+        # Setup mock context manager
+        mock_client_instance = AsyncMock()
+        mock_client_instance.get_games_details_batch.return_value = {}
+        mock_client_class.return_value.__aenter__.return_value = mock_client_instance
+
+        await _get_games_info_async([123], "US", "english", requests_per_second=4.0)
+
+        mock_client_class.assert_called_once_with(
+            country_code="US", language="english", requests_per_second=4.0
+        )

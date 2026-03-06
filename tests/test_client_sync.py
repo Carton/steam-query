@@ -20,6 +20,7 @@ class TestSteamQueryInit:
         assert client.language == "english"
         assert client._cache_size == 128
         assert client._cache_ttl == 300
+        assert client._requests_per_second == 1.0
 
     def test_init_with_custom_values(self):
         """Test initialization with custom values"""
@@ -28,12 +29,14 @@ class TestSteamQueryInit:
             language="japanese",
             cache_size=64,
             cache_ttl=600,
+            requests_per_second=2.5,
         )
 
         assert client.country_code == "JP"
         assert client.language == "japanese"
         assert client._cache_size == 64
         assert client._cache_ttl == 600
+        assert client._requests_per_second == 2.5
 
 
 class TestSteamQuerySearch:
@@ -80,6 +83,18 @@ class TestSteamQuerySearch:
         results = client.search("NonExistentGame")
 
         assert results == []
+
+    @patch("steam_query.client_sync._search_async")
+    def test_search_passes_rate_limit(self, mock_search):
+        """Test search passes requests_per_second"""
+        mock_search.return_value = []
+
+        client = SteamQuery(requests_per_second=3.5)
+        client.search("test")
+
+        mock_search.assert_called_once()
+        # It's called positionally: _search_async(query, limit, country, lang, rate)
+        assert mock_search.call_args.args[4] == 3.5
 
 
 class TestSteamQueryGet:
@@ -136,6 +151,22 @@ class TestSteamQueryGet:
             client.get(999999999)
 
         assert exc_info.value.app_id == 999999999
+
+    @patch("steam_query.client_sync._get_game_async")
+    def test_get_passes_rate_limit(self, mock_get):
+        """Test get passes requests_per_second"""
+        mock_get.return_value = None
+
+        client = SteamQuery(requests_per_second=4.5)
+
+        try:
+            client.get(123)
+        except GameNotFoundError:
+            pass
+
+        mock_get.assert_called_once()
+        # It's called positionally: _get_game_async(app_id, country, lang, rate)
+        assert mock_get.call_args.args[3] == 4.5
 
 
 class TestSteamQueryGetBatch:
@@ -196,6 +227,18 @@ class TestSteamQueryGetBatch:
         assert 9999999 not in games
         assert isinstance(games[1245620], Game)
         assert games[1245620].name == "ELDEN RING"
+
+    @patch("steam_query.client_sync._get_batch_async")
+    def test_get_batch_passes_rate_limit(self, mock_batch):
+        """Test get_batch passes requests_per_second"""
+        mock_batch.return_value = {}
+
+        client = SteamQuery(requests_per_second=5.5)
+        client.get_batch([123])
+
+        mock_batch.assert_called_once()
+        # It's called positionally: _get_batch_async(app_ids, country, lang, rate)
+        assert mock_batch.call_args.args[3] == 5.5
 
 
 class TestSteamQueryFind:

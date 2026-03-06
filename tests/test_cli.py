@@ -532,3 +532,85 @@ class TestBatchCommand:
                 assert result == 0
         finally:
             Path(temp_file).unlink(missing_ok=True)
+
+
+class TestCLIRateLimit:
+    """Tests for CLI rate limit argument passing."""
+
+    @patch("steam_query.cli.SteamStoreClient")
+    @pytest.mark.asyncio
+    async def test_search_command_passes_rate_limit(self, mock_client_class):
+        from steam_query.cli import search_command
+
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.search_games_by_name = AsyncMock(return_value=[{
+            "app_id": 1,
+            "name": "Test Game",
+            "short_desc": "Test",
+            "price": None,
+            "platforms": [],
+            "metacritic": None,
+            "review_score": None
+        }])
+        mock_client_class.return_value = mock_client
+
+        args = MagicMock(query="test", limit=10, country="US", rate_limit=0.5, output=None)
+        await search_command(args)
+
+        mock_client_class.assert_called_once_with(
+            country_code="US", requests_per_second=0.5
+        )
+
+    @patch("steam_query.cli.SteamStoreClient")
+    @pytest.mark.asyncio
+    async def test_lookup_command_passes_rate_limit(self, mock_client_class):
+        from steam_query.cli import lookup_command
+
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.get_app_details = AsyncMock(return_value={
+            "app_id": 1,
+            "name": "Test Game",
+            "short_desc": "Test",
+            "long_desc": "Test",
+            "release_date": "2022-01-01",
+            "developers": [],
+            "publishers": [],
+            "genres": [],
+            "tags": [],
+            "metacritic_score": None,
+            "price": None,
+            "platforms": [],
+            "is_free": False,
+            "header_image": "",
+            "screenshots": [],
+            "website": None,
+            "requirements": {}
+        })
+        mock_client_class.return_value = mock_client
+
+        args = MagicMock(app_id=1, query=None, country="KR", rate_limit=2.0, json=False, output=None)
+        await lookup_command(args)
+
+        mock_client_class.assert_called_once_with(
+            country_code="KR", requests_per_second=2.0
+        )
+
+    @patch("steam_query.cli.SteamStoreClient")
+    @pytest.mark.asyncio
+    async def test_batch_command_passes_rate_limit(self, mock_client_class):
+        from steam_query.cli import batch_command
+
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.search_games_by_name = AsyncMock(return_value=[{"app_id": 1}])
+        mock_client.get_app_details = AsyncMock(return_value={"app_id": 1})
+        mock_client_class.return_value = mock_client
+
+        args = MagicMock(queries=["test"], input=None, country="JP", rate_limit=0.1, output=None)
+        await batch_command(args)
+
+        mock_client_class.assert_called_once_with(
+            country_code="JP", requests_per_second=0.1
+        )

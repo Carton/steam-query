@@ -3,14 +3,15 @@
 No login required, can query any game on the Steam store directly
 """
 
+import asyncio
 import logging
 import os
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import aiohttp
-from ratelimit import limits, sleep_and_retry
 
 from .exceptions import APIError, GameNotFoundError, InvalidResponseError, NetworkError
 
@@ -89,6 +90,8 @@ class SteamStoreClient:
         self.country_code = country_code or _get_default_country()
         self.language = language
         self._session: aiohttp.ClientSession | None = None
+        self._last_request_time: float = 0.0
+        self._rate_limit_lock: asyncio.Lock | None = None
         logger.debug(
             f"SteamStoreClient initialized with country_code={self.country_code}, language={self.language}"
         )
@@ -96,6 +99,7 @@ class SteamStoreClient:
     async def __aenter__(self):
         """Async context manager entry"""
         self._session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30))
+        self._rate_limit_lock = asyncio.Lock()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -103,14 +107,21 @@ class SteamStoreClient:
         if self._session:
             await self._session.close()
 
-    @sleep_and_retry
-    @limits(calls=1, period=1)  # 1 req/sec
     async def _get(
         self, url: str, params: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """HTTP GET request (with rate limiting)"""
         if not self._session:
             raise RuntimeError("Client not initialized, please use async with")
+
+        if self.requests_per_second > 0 and self._rate_limit_lock:
+            async with self._rate_limit_lock:
+                now = time.time()
+                elapsed = now - self._last_request_time
+                wait_time = (1.0 / self.requests_per_second) - elapsed
+                if wait_time > 0:
+                    await asyncio.sleep(wait_time)
+                self._last_request_time = time.time()
 
         try:
             async with self._session.get(url, params=params) as response:

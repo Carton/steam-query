@@ -423,3 +423,43 @@ class TestAPICalls:
             call_args = mock_get.call_args
             # _get is called with positional args: (url, params)
             assert call_args[0][1]["l"] == "english"
+
+
+class TestRateLimiting:
+    """Tests for rate limiting logic."""
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_applied(self):
+        """Test that rate limiting delays requests appropriately."""
+        import asyncio
+        import time
+
+        # We set rate limit to 5.0 to make test run fast but still test logic
+        # 3 requests at 5 req/s should take at least (3-1) * 0.2 = 0.4 seconds
+        client = SteamStoreClient(requests_per_second=5.0)
+
+        # We need a mock session since we're not actually making requests
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.json = AsyncMock(return_value={})
+
+        mock_session = MagicMock()
+        mock_context = AsyncMock()
+        mock_context.__aenter__.return_value = mock_response
+        mock_session.get.return_value = mock_context
+
+        client._session = mock_session
+        client._rate_limit_lock = asyncio.Lock()
+
+        start_time = time.time()
+
+        # Make 3 requests
+        await client._get("http://test.com")
+        await client._get("http://test.com")
+        await client._get("http://test.com")
+
+        end_time = time.time()
+
+        # 3 requests at 5 req/s should take at least 0.4 seconds
+        assert end_time - start_time >= 0.4
+        assert mock_session.get.call_count == 3
