@@ -1,15 +1,14 @@
 """Tests for custom exceptions."""
 
-import pytest
 from steam_query.exceptions import (
-    SteamQueryError,
-    NetworkError,
-    TimeoutError,
     APIError,
-    RateLimitError,
+    ConfigurationError,
     GameNotFoundError,
     InvalidResponseError,
-    ConfigurationError,
+    NetworkError,
+    RateLimitError,
+    RequestTimeoutError,
+    SteamQueryError,
 )
 
 
@@ -28,9 +27,9 @@ class TestExceptionHierarchy:
         assert isinstance(error, SteamQueryError)
         assert isinstance(error, Exception)
 
-    def test_timeout_error_inherits_from_base(self):
-        """Test TimeoutError inherits from SteamQueryError"""
-        error = TimeoutError("request timeout")
+    def test_request_timeout_error_inherits_from_base(self):
+        """Test RequestTimeoutError inherits from SteamQueryError"""
+        error = RequestTimeoutError("request timeout")
         assert isinstance(error, SteamQueryError)
 
     def test_api_error_inherits_from_base(self):

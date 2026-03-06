@@ -13,7 +13,7 @@ class NetworkError(SteamQueryError):
     pass
 
 
-class TimeoutError(SteamQueryError):
+class RequestTimeoutError(SteamQueryError):
     """Request timeout."""
 
     pass
