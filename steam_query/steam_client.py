@@ -12,6 +12,8 @@ from typing import Any
 import aiohttp
 from ratelimit import limits, sleep_and_retry
 
+from .exceptions import APIError, GameNotFoundError, InvalidResponseError, NetworkError
+
 logger = logging.getLogger(__name__)
 
 
@@ -112,14 +114,25 @@ class SteamStoreClient:
 
         try:
             async with self._session.get(url, params=params) as response:
+                # Handle HTTP errors
+                if response.status == 429:
+                    raise APIError("Rate limit exceeded", status_code=429)
+                if response.status >= 500:
+                    raise APIError(f"Server error: {response.status}", status_code=response.status)
+                if response.status == 404:
+                    raise APIError("Not found", status_code=404)
+
                 response.raise_for_status()
                 return await response.json()
+
         except aiohttp.ClientError as e:
             logger.error(f"HTTP error: {e}")
-            raise
+            raise NetworkError(f"Network error: {e}") from e
+        except APIError:
+            raise  # Re-raise API errors
         except Exception as e:
             logger.error(f"Unknown error: {e}")
-            raise
+            raise NetworkError(f"Request failed: {e}") from e
 
     async def search_games_by_name(
         self, query: str, limit: int = 10
@@ -198,6 +211,11 @@ class SteamStoreClient:
 
         Returns:
             Dictionary with detailed game information
+
+        Raises:
+            GameNotFoundError: Game not found
+            NetworkError: Network error
+            APIError: API error
         """
         logger.debug(f"Getting game details: {app_id}")
 
@@ -208,16 +226,19 @@ class SteamStoreClient:
         try:
             data = await self._get(url, params)
 
-            if str(app_id) in data and data[str(app_id)].get("success"):
-                app_data = data[str(app_id)]["data"]
-                return self._parse_app_details(app_data)
+            if str(app_id) not in data or not data[str(app_id)].get("success"):
+                raise GameNotFoundError(app_id=app_id)
 
-            logger.warning(f"Game {app_id} not found")
-            return None
+            app_data = data[str(app_id)]["data"]
+            return self._parse_app_details(app_data)
 
+        except GameNotFoundError:
+            raise
+        except APIError:
+            raise
         except Exception as e:
             logger.error(f"Failed to get details (app_id={app_id}): {e}")
-            return None
+            raise InvalidResponseError(f"Invalid response for app_id={app_id}") from e
 
     def _currency_uses_decimals(self, currency: str) -> bool:
         """Check if currency uses decimal units (cents)

@@ -1,5 +1,7 @@
 """Tests for custom exceptions."""
 
+import pytest
+
 from steam_query.exceptions import (
     APIError,
     ConfigurationError,
@@ -91,3 +93,29 @@ class TestAPIError:
         """Test APIError without status code"""
         error = APIError("API error")
         assert error.status_code is None
+
+
+class TestExceptionIntegration:
+    """Test exceptions raised by SteamStoreClient"""
+
+    @pytest.mark.asyncio
+    async def test_get_app_details_raises_game_not_found(self):
+        """Test get_app_details raises GameNotFoundError"""
+        from steam_query.steam_client import SteamStoreClient
+
+        async with SteamStoreClient() as client:
+            with pytest.raises(GameNotFoundError) as exc_info:
+                await client.get_app_details(999999999)
+
+            assert exc_info.value.app_id == 999999999
+            assert "999999999" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_search_empty_results_returns_empty_list(self):
+        """Test search with no results returns empty list (not error)"""
+        from steam_query.steam_client import SteamStoreClient
+
+        async with SteamStoreClient() as client:
+            results = await client.search_games_by_name("NonExistentGameXYZ123", limit=10)
+
+            assert results == []

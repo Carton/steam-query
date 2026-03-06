@@ -323,25 +323,31 @@ class TestGetAppDetails:
     @pytest.mark.asyncio
     async def test_get_app_details_not_found(self):
         """Test getting details for non-existent app."""
+        from steam_query.exceptions import GameNotFoundError
+
         client = SteamStoreClient()
 
         not_found_response = {"9999999": {"success": False}}
         async_mock = AsyncMock(return_value=not_found_response)
         with patch.object(client, "_get", async_mock):
-            result = await client.get_app_details(9999999)
+            with pytest.raises(GameNotFoundError) as exc_info:
+                await client.get_app_details(9999999)
 
-            assert result is None
+            assert exc_info.value.app_id == 9999999
 
     @pytest.mark.asyncio
     async def test_get_app_details_api_error(self):
         """Test handling API errors."""
+        from steam_query.exceptions import InvalidResponseError
+
         client = SteamStoreClient()
 
         async_mock = AsyncMock(side_effect=Exception("API Error"))
         with patch.object(client, "_get", async_mock):
-            result = await client.get_app_details(1245620)
+            with pytest.raises(InvalidResponseError) as exc_info:
+                await client.get_app_details(1245620)
 
-            assert result is None
+            assert "1245620" in str(exc_info.value)
 
 
 class TestGetGamesDetailsBatch:
@@ -388,11 +394,14 @@ class TestAPICalls:
     @pytest.mark.asyncio
     async def test_lookup_uses_country_code(self):
         """Test that lookup API uses configured country code."""
+        from steam_query.exceptions import GameNotFoundError
+
         client = SteamStoreClient(country_code="KR")
 
         async_mock = AsyncMock(return_value={"1245620": {"success": False}})
         with patch.object(client, "_get", async_mock) as mock_get:
-            await client.get_app_details(1245620)
+            with pytest.raises(GameNotFoundError):
+                await client.get_app_details(1245620)
 
             # Check that cc parameter was set to KR
             mock_get.assert_called_once()
