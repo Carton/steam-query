@@ -7,10 +7,7 @@ import argparse
 import asyncio
 import json
 import logging
-import sys
 from datetime import datetime
-from pathlib import Path
-from typing import Optional
 
 import colorlog
 
@@ -60,7 +57,7 @@ def format_game_info(game: dict) -> str:
     ]
 
     # Basic information
-    lines.append(f"\n📋 Basic Info:")
+    lines.append("\n📋 Basic Info:")
     lines.append(f"   App ID:      {game.get('app_id', 'N/A')}")
     lines.append(f"   Release Date: {game.get('release_date', 'N/A')}")
     lines.append(f"   Free:        {'Yes' if game.get('is_free') else 'No'}")
@@ -80,7 +77,7 @@ def format_game_info(game: dict) -> str:
 
     # Platforms
     if game.get("platforms"):
-        lines.append(f"\n💻 Supported Platforms:")
+        lines.append("\n💻 Supported Platforms:")
         for platform in game["platforms"]:
             lines.append(f"   • {platform}")
 
@@ -90,9 +87,27 @@ def format_game_info(game: dict) -> str:
         currency = price.get("currency", "USD")
 
         # Format price based on currency (some don't use decimals)
-        no_decimal_currencies = {"JPY", "KRW", "CLP", "ISK", "BIF", "DJF",
-                                 "GNF", "KHR", "KPW", "LAK", "MGA", "MZN",
-                                 "RWF", "UGX", "VND", "VUV", "XAF", "XOF", "XPF"}
+        no_decimal_currencies = {
+            "JPY",
+            "KRW",
+            "CLP",
+            "ISK",
+            "BIF",
+            "DJF",
+            "GNF",
+            "KHR",
+            "KPW",
+            "LAK",
+            "MGA",
+            "MZN",
+            "RWF",
+            "UGX",
+            "VND",
+            "VUV",
+            "XAF",
+            "XOF",
+            "XPF",
+        }
 
         if currency in no_decimal_currencies:
             # No decimals for these currencies
@@ -111,14 +126,14 @@ def format_game_info(game: dict) -> str:
             else:
                 lines.append(f"\n💰 Price: {price['final']:.2f} {currency}")
     elif game.get("is_free"):
-        lines.append(f"\n💰 Price: Free")
+        lines.append("\n💰 Price: Free")
 
     # Short description
     if game.get("short_desc"):
         desc = game["short_desc"]
         if len(desc) > 100:
             desc = desc[:97] + "..."
-        lines.append(f"\n📝 Description:")
+        lines.append("\n📝 Description:")
         lines.append(f"   {desc}")
 
     # Link
@@ -156,29 +171,55 @@ async def search_command(args):
         for i, game in enumerate(results, 1):
             print(f"{i}. {game['name']} (App ID: {game['app_id']})")
             if game.get("short_desc"):
-                desc = game["short_desc"][:80] + "..." if len(game["short_desc"]) > 80 else game["short_desc"]
+                desc = (
+                    game["short_desc"][:80] + "..."
+                    if len(game["short_desc"]) > 80
+                    else game["short_desc"]
+                )
                 print(f"   {desc}")
             if game.get("price") and game["price"].get("final") is not None:
                 price = game["price"]
                 currency = price.get("currency", "USD")
 
                 # No decimals for certain currencies
-                no_decimal_currencies = {"JPY", "KRW", "CLP", "ISK", "BIF", "DJF",
-                                         "GNF", "KHR", "KPW", "LAK", "MGA", "MZN",
-                                         "RWF", "UGX", "VND", "VUV", "XAF", "XOF", "XPF"}
+                no_decimal_currencies = {
+                    "JPY",
+                    "KRW",
+                    "CLP",
+                    "ISK",
+                    "BIF",
+                    "DJF",
+                    "GNF",
+                    "KHR",
+                    "KPW",
+                    "LAK",
+                    "MGA",
+                    "MZN",
+                    "RWF",
+                    "UGX",
+                    "VND",
+                    "VUV",
+                    "XAF",
+                    "XOF",
+                    "XPF",
+                }
 
                 if currency in no_decimal_currencies:
                     if price.get("discount_percent", 0) > 0:
-                        print(f"   💰 {int(price['final'])} {currency} (was {int(price['initial'])} {currency}, -{price['discount_percent']}%)")
+                        print(
+                            f"   💰 {int(price['final'])} {currency} (was {int(price['initial'])} {currency}, -{price['discount_percent']}%)"
+                        )
                     else:
                         print(f"   💰 {int(price['final'])} {currency}")
                 else:
                     if price.get("discount_percent", 0) > 0:
-                        print(f"   💰 {price['final']:.2f} {currency} (was {price['initial']:.2f} {currency}, -{price['discount_percent']}%)")
+                        print(
+                            f"   💰 {price['final']:.2f} {currency} (was {price['initial']:.2f} {currency}, -{price['discount_percent']}%)"
+                        )
                     else:
                         print(f"   💰 {price['final']:.2f} {currency}")
             else:
-                print(f"   💰 Free or not priced")
+                print("   💰 Free or not priced")
             print()
 
         # Save to file
@@ -214,7 +255,7 @@ async def lookup_command(args):
             app_id = args.app_id
 
         # Get detailed information
-        print(f"⏳ Getting detailed information...")
+        print("⏳ Getting detailed information...")
         game = await client.get_app_details(app_id)
 
         if not game:
@@ -245,7 +286,7 @@ async def batch_command(args):
     """Batch query command"""
     # Read input
     if args.input:
-        with open(args.input, "r", encoding="utf-8") as f:
+        with open(args.input, encoding="utf-8") as f:
             if args.input.endswith(".json"):
                 data = json.load(f)
                 # Assume Epic games format
@@ -285,16 +326,16 @@ async def batch_command(args):
                 if game:
                     results.append(game)
                     found += 1
-                    print(f" ✓")
+                    print(" ✓")
                 else:
                     results.append({"query": query, "error": "Cannot get details"})
-                    print(f" ⚠️")
+                    print(" ⚠️")
             else:
                 results.append({"query": query, "error": "Not found"})
-                print(f" ❌")
+                print(" ❌")
 
         # Show statistics
-        print(f"\n📊 Statistics:")
+        print("\n📊 Statistics:")
         print(f"   Total: {len(queries)}")
         print(f"   Found: {found}")
         print(f"   Not Found: {len(queries) - found}")
@@ -362,7 +403,7 @@ More info: https://github.com/carton/steam-query
     # Common country argument for all subcommands
     country_kwargs = {
         "help": "Country code for pricing (e.g., US, CN, KR, JP, GB). Overrides environment/config.",
-        "type": lambda x: x.upper()
+        "type": lambda x: x.upper(),
     }
 
     subparsers = parser.add_subparsers(dest="command", help="Subcommands")
@@ -376,7 +417,7 @@ More info: https://github.com/carton/steam-query
         "-l", "--limit", type=int, default=10, help="Number of results (default 10)"
     )
     search_parser.add_argument("-o", "--output", help="Save results to JSON file")
-    search_parser.add_argument("-c", "--country", **country_kwargs)
+    search_parser.add_argument("-c", "--country", **country_kwargs)  # type: ignore[arg-type]
 
     # Lookup command
     lookup_parser = subparsers.add_parser(
@@ -389,19 +430,17 @@ More info: https://github.com/carton/steam-query
         "-j", "--json", action="store_true", help="Output in JSON format"
     )
     lookup_parser.add_argument("-o", "--output", help="Save results to JSON file")
-    lookup_parser.add_argument("-c", "--country", **country_kwargs)
+    lookup_parser.add_argument("-c", "--country", **country_kwargs)  # type: ignore[arg-type]
 
     # Batch query command
     batch_parser = subparsers.add_parser("batch", help="Query multiple games in batch")
     batch_input = batch_parser.add_mutually_exclusive_group(required=True)
-    batch_input.add_argument(
-        "queries", nargs="*", help="List of game names"
-    )
+    batch_input.add_argument("queries", nargs="*", help="List of game names")
     batch_input.add_argument(
         "-i", "--input", help="Input file (JSON or text, one game name per line)"
     )
     batch_parser.add_argument("-o", "--output", required=True, help="Output JSON file")
-    batch_parser.add_argument("-c", "--country", **country_kwargs)
+    batch_parser.add_argument("-c", "--country", **country_kwargs)  # type: ignore[arg-type]
 
     args = parser.parse_args()
 

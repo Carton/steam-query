@@ -3,14 +3,11 @@
 No login required, can query any game on the Steam store directly
 """
 
-import asyncio
 import logging
-import re
-import json
 import os
-from typing import Any, Optional
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import aiohttp
 from ratelimit import limits, sleep_and_retry
@@ -37,18 +34,24 @@ def _get_default_country() -> str:
     if config_file.exists():
         try:
             import tomllib  # Python 3.11+
+
             with open(config_file, "rb") as f:
                 config = tomllib.load(f)
                 if country := config.get("steam-query", {}).get("country"):
-                    logger.debug(f"Using country from config file {config_file}: {country.upper()}")
+                    logger.debug(
+                        f"Using country from config file {config_file}: {country.upper()}"
+                    )
                     return country.upper()
         except ImportError:
             try:
                 import toml
-                with open(config_file, "r") as f:
+
+                with open(config_file) as f:
                     config = toml.load(f)
                     if country := config.get("steam-query", {}).get("country"):
-                        logger.debug(f"Using country from config file {config_file}: {country.upper()}")
+                        logger.debug(
+                            f"Using country from config file {config_file}: {country.upper()}"
+                        )
                         return country.upper()
             except ImportError:
                 logger.warning(f"toml library not installed, cannot read {config_file}")
@@ -70,7 +73,7 @@ class SteamStoreClient:
         self,
         requests_per_second: float = 1.0,
         country_code: str | None = None,
-        language: str = "english"
+        language: str = "english",
     ):
         """Initialize client
 
@@ -83,14 +86,14 @@ class SteamStoreClient:
         self.requests_per_second = requests_per_second
         self.country_code = country_code or _get_default_country()
         self.language = language
-        self._session: Optional[aiohttp.ClientSession] = None
-        logger.debug(f"SteamStoreClient initialized with country_code={self.country_code}, language={self.language}")
+        self._session: aiohttp.ClientSession | None = None
+        logger.debug(
+            f"SteamStoreClient initialized with country_code={self.country_code}, language={self.language}"
+        )
 
     async def __aenter__(self):
         """Async context manager entry"""
-        self._session = aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(total=30)
-        )
+        self._session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30))
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -101,7 +104,7 @@ class SteamStoreClient:
     @sleep_and_retry
     @limits(calls=1, period=1)  # 1 req/sec
     async def _get(
-        self, url: str, params: Optional[dict[str, Any]] = None
+        self, url: str, params: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """HTTP GET request (with rate limiting)"""
         if not self._session:
@@ -155,21 +158,27 @@ class SteamStoreClient:
                     price_data = item.get("price")
                     if price_data and isinstance(price_data, dict):
                         price_data = {
-                            "initial": price_data.get("initial", 0) / 100 if price_data.get("initial") else None,
-                            "final": price_data.get("final", 0) / 100 if price_data.get("final") else None,
+                            "initial": price_data.get("initial", 0) / 100
+                            if price_data.get("initial")
+                            else None,
+                            "final": price_data.get("final", 0) / 100
+                            if price_data.get("final")
+                            else None,
                             "discount_percent": price_data.get("discount_percent", 0),
                             "currency": price_data.get("currency", "USD"),
                         }
 
-                    results.append({
-                        "app_id": item.get("id"),
-                        "name": item.get("name"),
-                        "short_desc": item.get("short_description"),
-                        "price": price_data,
-                        "platforms": item.get("platforms", []),
-                        "metacritic": item.get("metacritic"),
-                        "review_score": item.get("review_score"),
-                    })
+                    results.append(
+                        {
+                            "app_id": item.get("id"),
+                            "name": item.get("name"),
+                            "short_desc": item.get("short_description"),
+                            "price": price_data,
+                            "platforms": item.get("platforms", []),
+                            "metacritic": item.get("metacritic"),
+                            "review_score": item.get("review_score"),
+                        }
+                    )
 
                 logger.info(f"Found {len(results)} result(s)")
                 return results
@@ -181,7 +190,7 @@ class SteamStoreClient:
             logger.error(f"Search failed: {e}")
             return []
 
-    async def get_app_details(self, app_id: int) -> Optional[dict[str, Any]]:
+    async def get_app_details(self, app_id: int) -> dict[str, Any] | None:
         """Get detailed game information
 
         Args:
@@ -217,9 +226,25 @@ class SteamStoreClient:
         """
         # Currencies that don't use decimal units
         no_decimal_currencies = {
-            "JPY", "KRW", "CLP", "ISK", "BIF", "DJF", "GNF",
-            "KHR", "KPW", "LAK", "MGA", "MZN", "RWF", "UGX",
-            "VND", "VUV", "XAF", "XOF", "XPF"
+            "JPY",
+            "KRW",
+            "CLP",
+            "ISK",
+            "BIF",
+            "DJF",
+            "GNF",
+            "KHR",
+            "KPW",
+            "LAK",
+            "MGA",
+            "MZN",
+            "RWF",
+            "UGX",
+            "VND",
+            "VUV",
+            "XAF",
+            "XOF",
+            "XPF",
         }
         return currency not in no_decimal_currencies
 
@@ -268,14 +293,19 @@ class SteamStoreClient:
 
         # Metacritic score
         metacritic = app_data.get("metacritic", {})
-        metacritic_score = metacritic.get("score") if isinstance(metacritic, dict) else None
+        metacritic_score = (
+            metacritic.get("score") if isinstance(metacritic, dict) else None
+        )
 
         # Price information
         # Note: appdetails API returns price in cents for some currencies, but not for others
         # Currencies like JPY, KRW don't use decimal units
         price_overview = app_data.get("price_overview", {})
         price = None
-        if isinstance(price_overview, dict) and price_overview.get("initial") is not None:
+        if (
+            isinstance(price_overview, dict)
+            and price_overview.get("initial") is not None
+        ):
             currency = price_overview.get("currency", "USD")
             uses_decimals = self._currency_uses_decimals(currency)
 
@@ -309,7 +339,9 @@ class SteamStoreClient:
             "app_id": app_data.get("steam_appid"),
             "name": app_data.get("name"),
             "short_desc": app_data.get("short_description"),
-            "long_desc": app_data.get("detailed_description", "")[:500],  # First 500 chars
+            "long_desc": app_data.get("detailed_description", "")[
+                :500
+            ],  # First 500 chars
             "release_date": release_date,
             "developers": developers,
             "publishers": publishers,
@@ -329,7 +361,7 @@ class SteamStoreClient:
             "requirements": self._extract_requirements(app_data),
         }
 
-    def _parse_date(self, date_str: str) -> Optional[str]:
+    def _parse_date(self, date_str: str) -> str | None:
         """Parse date string
 
         Args:
@@ -354,7 +386,9 @@ class SteamStoreClient:
         # If all fail, return original string
         return date_str
 
-    def _extract_requirements(self, app_data: dict[str, Any]) -> dict[str, dict[str, str]]:
+    def _extract_requirements(
+        self, app_data: dict[str, Any]
+    ) -> dict[str, dict[str, str]]:
         """Extract system requirements
 
         Args:

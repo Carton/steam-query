@@ -1,9 +1,10 @@
 """Tests for CLI functionality."""
 
-import pytest
-from unittest.mock import patch, MagicMock
 import json
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from steam_query.cli import (
     format_game_info,
@@ -47,8 +48,8 @@ class TestFormatGameInfo:
                 "initial": 59.99,
                 "final": 29.99,
                 "discount_percent": 50,
-                "currency": "USD"
-            }
+                "currency": "USD",
+            },
         }
 
         result = format_game_info(game)
@@ -66,8 +67,8 @@ class TestFormatGameInfo:
                 "initial": 59.99,
                 "final": 59.99,
                 "discount_percent": 0,
-                "currency": "USD"
-            }
+                "currency": "USD",
+            },
         }
 
         result = format_game_info(game)
@@ -84,8 +85,8 @@ class TestFormatGameInfo:
                 "initial": 6000,
                 "final": 6000,
                 "discount_percent": 0,
-                "currency": "JPY"
-            }
+                "currency": "JPY",
+            },
         }
 
         result = format_game_info(game)
@@ -109,29 +110,17 @@ class TestFormatGameInfo:
     def test_format_metacritic_score_colors(self):
         """Test Metacritic score emoji coloring."""
         # High score (green)
-        game_high = {
-            "app_id": 1,
-            "name": "Test",
-            "metacritic_score": 90
-        }
+        game_high = {"app_id": 1, "name": "Test", "metacritic_score": 90}
         result_high = format_game_info(game_high)
         assert "🟢" in result_high
 
         # Medium score (yellow)
-        game_med = {
-            "app_id": 1,
-            "name": "Test",
-            "metacritic_score": 65
-        }
+        game_med = {"app_id": 1, "name": "Test", "metacritic_score": 65}
         result_med = format_game_info(game_med)
         assert "🟡" in result_med
 
         # Low score (red)
-        game_low = {
-            "app_id": 1,
-            "name": "Test",
-            "metacritic_score": 40
-        }
+        game_low = {"app_id": 1, "name": "Test", "metacritic_score": 40}
         result_low = format_game_info(game_low)
         assert "🔴" in result_low
 
@@ -145,7 +134,7 @@ class TestFormatGameJson:
             "app_id": 1245620,
             "name": "Test Game",
             "long_desc": "A" * 1000,
-            "short_desc": "Short description"
+            "short_desc": "Short description",
         }
 
         result = format_game_json(game)
@@ -159,7 +148,7 @@ class TestFormatGameJson:
         game = {
             "app_id": 1245620,
             "name": "Test Game",
-            "screenshots": ["screenshot1.jpg", "screenshot2.jpg"]
+            "screenshots": ["screenshot1.jpg", "screenshot2.jpg"],
         }
 
         result = format_game_json(game)
@@ -172,7 +161,7 @@ class TestFormatGameJson:
         game = {
             "app_id": 1245620,
             "name": "Test Game",
-            "price": {"final": 29.99, "currency": "USD"}
+            "price": {"final": 29.99, "currency": "USD"},
         }
 
         result = format_game_json(game)
@@ -211,7 +200,7 @@ class TestSearchCommand:
                 "app_id": 1245620,
                 "name": "ELDEN RING",
                 "short_desc": "Action RPG",
-                "price": {"final": 59.99, "currency": "USD"}
+                "price": {"final": 59.99, "currency": "USD"},
             }
         ]
 
@@ -257,7 +246,7 @@ class TestLookupCommand:
         mock_game = {
             "app_id": 1245620,
             "name": "ELDEN RING",
-            "price": {"final": 59.99, "currency": "USD"}
+            "price": {"final": 59.99, "currency": "USD"},
         }
 
         with patch("steam_query.cli.SteamStoreClient") as mock_client_class:
@@ -267,12 +256,7 @@ class TestLookupCommand:
             mock_client.get_app_details = AsyncMock(return_value=mock_game)
             mock_client_class.return_value = mock_client
 
-            args = MagicMock(
-                app_id=1245620,
-                query=None,
-                json=False,
-                output=None
-            )
+            args = MagicMock(app_id=1245620, query=None, json=False, output=None)
             result = await lookup_command(args)
 
             assert result == 0
@@ -287,23 +271,20 @@ class TestLookupCommand:
         mock_game = {
             "app_id": 1245620,
             "name": "ELDEN RING",
-            "price": {"final": 59.99, "currency": "USD"}
+            "price": {"final": 59.99, "currency": "USD"},
         }
 
         with patch("steam_query.cli.SteamStoreClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock()
-            mock_client.search_games_by_name = AsyncMock(return_value=mock_search_results)
+            mock_client.search_games_by_name = AsyncMock(
+                return_value=mock_search_results
+            )
             mock_client.get_app_details = AsyncMock(return_value=mock_game)
             mock_client_class.return_value = mock_client
 
-            args = MagicMock(
-                app_id=None,
-                query="Elden Ring",
-                json=False,
-                output=None
-            )
+            args = MagicMock(app_id=None, query="Elden Ring", json=False, output=None)
             result = await lookup_command(args)
 
             assert result == 0
@@ -321,7 +302,7 @@ class TestBatchCommand:
 
         mock_games = [
             {"app_id": 1245620, "name": "ELDEN RING"},
-            {"app_id": 1091500, "name": "Cyberpunk 2077"}
+            {"app_id": 1091500, "name": "Cyberpunk 2077"},
         ]
 
         with patch("steam_query.cli.SteamStoreClient") as mock_client_class:
@@ -333,18 +314,16 @@ class TestBatchCommand:
             mock_client.search_games_by_name = AsyncMock(
                 side_effect=[
                     [{"app_id": 1245620, "name": "ELDEN RING"}],
-                    [{"app_id": 1091500, "name": "Cyberpunk 2077"}]
+                    [{"app_id": 1091500, "name": "Cyberpunk 2077"}],
                 ]
             )
-            mock_client.get_app_details = AsyncMock(
-                side_effect=mock_games
-            )
+            mock_client.get_app_details = AsyncMock(side_effect=mock_games)
             mock_client_class.return_value = mock_client
 
             args = MagicMock(
                 queries=["ELDEN RING", "Cyberpunk 2077"],
                 input=None,
-                output="results.json"
+                output="results.json",
             )
             result = await batch_command(args)
 
@@ -356,12 +335,11 @@ class TestBatchCommand:
         """Test batch command reading from file."""
         from steam_query.cli import batch_command
 
-        mock_games = [
-            {"app_id": 1245620, "name": "ELDEN RING"}
-        ]
+        mock_games = [{"app_id": 1245620, "name": "ELDEN RING"}]
 
         # Create temp file
         import tempfile
+
         with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as f:
             f.write("ELDEN RING\n")
             f.write("Hollow Knight\n")
@@ -376,16 +354,10 @@ class TestBatchCommand:
                 mock_client.search_games_by_name = AsyncMock(
                     return_value=[{"app_id": 1245620, "name": "ELDEN RING"}]
                 )
-                mock_client.get_app_details = AsyncMock(
-                    return_value=mock_games[0]
-                )
+                mock_client.get_app_details = AsyncMock(return_value=mock_games[0])
                 mock_client_class.return_value = mock_client
 
-                args = MagicMock(
-                    queries=None,
-                    input=temp_file,
-                    output="results.json"
-                )
+                args = MagicMock(queries=None, input=temp_file, output="results.json")
                 result = await batch_command(args)
 
                 assert result == 0

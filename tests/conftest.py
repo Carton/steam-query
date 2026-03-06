@@ -1,7 +1,8 @@
 """Pytest configuration and shared fixtures."""
 
+from unittest.mock import MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 from aiohttp import ClientSession
 
 
@@ -23,41 +24,22 @@ def sample_game_data():
                 "name": "ELDEN RING",
                 "short_description": "A new action RPG",
                 "detailed_description": "FromSoftware Inc. action RPG",
-                "release_date": {
-                    "date": "Feb 25, 2022",
-                    "coming_soon": False
-                },
-                "developers": [
-                    {"name": "FromSoftware Inc."}
-                ],
-                "publishers": [
-                    {"name": "BANDAI NAMCO Entertainment Inc."}
-                ],
-                "genres": [
-                    {"description": "Action RPG"},
-                    {"description": "Adventure"}
-                ],
-                "tags": [
-                    {"tag": "Souls-like"},
-                    {"tag": "Challenging"}
-                ],
+                "release_date": {"date": "Feb 25, 2022", "coming_soon": False},
+                "developers": [{"name": "FromSoftware Inc."}],
+                "publishers": [{"name": "BANDAI NAMCO Entertainment Inc."}],
+                "genres": [{"description": "Action RPG"}, {"description": "Adventure"}],
+                "tags": [{"tag": "Souls-like"}, {"tag": "Challenging"}],
                 "metacritic": {"score": 96},
                 "price_overview": {
                     "currency": "USD",
                     "initial": 5999,
                     "final": 5999,
-                    "discount_percent": 0
+                    "discount_percent": 0,
                 },
-                "platforms": {
-                    "windows": True,
-                    "mac": False,
-                    "linux": False
-                },
+                "platforms": {"windows": True, "mac": False, "linux": False},
                 "is_free": False,
                 "header_image": "https://example.com/header.jpg",
-                "screenshots": [
-                    {"path_thumbnail": "https://example.com/screen1.jpg"}
-                ],
+                "screenshots": [{"path_thumbnail": "https://example.com/screen1.jpg"}],
                 "website": "https://www.eldenring.com/",
                 "pc_requirements": {
                     "minimum": {
@@ -65,9 +47,9 @@ def sample_game_data():
                     },
                     "recommended": {
                         "english": "OS: Windows 11\nProcessor: i7-8700K\nMemory: 16 GB"
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
     }
 
@@ -86,11 +68,11 @@ def sample_search_results():
                     "currency": "USD",
                     "initial": 5999,
                     "final": 5999,
-                    "discount_percent": 0
+                    "discount_percent": 0,
                 },
                 "platforms": ["windows"],
                 "metacritic": {"score": 96},
-                "review_score": 9
+                "review_score": 9,
             },
             {
                 "id": 1091500,
@@ -100,11 +82,11 @@ def sample_search_results():
                     "currency": "USD",
                     "initial": 5999,
                     "final": 2999,
-                    "discount_percent": 50
+                    "discount_percent": 50,
                 },
                 "platforms": ["windows"],
                 "metacritic": {"score": 86},
-                "review_score": 7
-            }
-        ]
+                "review_score": 7,
+            },
+        ],
     }

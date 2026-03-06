@@ -1,8 +1,9 @@
 """Tests for SteamStoreClient."""
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from steam_query.steam_client import SteamStoreClient, _get_default_country
 
@@ -21,6 +22,7 @@ class TestDefaultCountry:
         """Test default country when no config file exists."""
         # Skip on Windows if HOME is not set
         import os
+
         if not os.getenv("HOME") and not os.getenv("USERPROFILE"):
             pytest.skip("HOME not set on Windows")
 
@@ -33,6 +35,7 @@ class TestDefaultCountry:
         """Test reading country from config file."""
         # Skip on Windows if HOME is not set
         import os
+
         if not os.getenv("HOME") and not os.getenv("USERPROFILE"):
             pytest.skip("HOME not set on Windows")
 
@@ -43,9 +46,11 @@ class TestDefaultCountry:
                 mock_tomllib.load.return_value = mock_config
 
                 import tempfile
+
                 with tempfile.NamedTemporaryFile() as f:
                     # Mock open to return our temp file
                     original_open = open
+
                     def custom_open(path, *args, **kwargs):
                         if "config.toml" in str(path):
                             return f
@@ -178,7 +183,10 @@ Storage: 60 GB available space"""
         result = client._parse_requirements(req_text)
 
         assert "64-bit" in result["os"]
-        assert "Intel Core i5-8400" in result["processor"] or "AMD Ryzen 5 1600" in result["processor"]
+        assert (
+            "Intel Core i5-8400" in result["processor"]
+            or "AMD Ryzen 5 1600" in result["processor"]
+        )
 
 
 class TestParseAppDetails:
@@ -248,8 +256,9 @@ class TestSearchGames:
         """Test searching games with matching results."""
         client = SteamStoreClient()
 
-        # Mock the _get method
-        with patch.object(client, "_get", return_value=sample_search_results):
+        # Mock the _get method - must use AsyncMock for async methods
+        async_mock = AsyncMock(return_value=sample_search_results)
+        with patch.object(client, "_get", async_mock):
             results = await client.search_games_by_name("Elden Ring")
 
             assert len(results) == 2
@@ -262,7 +271,8 @@ class TestSearchGames:
         """Test that prices are correctly converted from cents."""
         client = SteamStoreClient()
 
-        with patch.object(client, "_get", return_value=sample_search_results):
+        async_mock = AsyncMock(return_value=sample_search_results)
+        with patch.object(client, "_get", async_mock):
             results = await client.search_games_by_name("test")
 
             # USD should be divided by 100
@@ -276,7 +286,8 @@ class TestSearchGames:
         client = SteamStoreClient()
 
         empty_response = {"total": 0, "items": []}
-        with patch.object(client, "_get", return_value=empty_response):
+        async_mock = AsyncMock(return_value=empty_response)
+        with patch.object(client, "_get", async_mock):
             results = await client.search_games_by_name("NonExistentGame")
 
             assert results == []
@@ -286,7 +297,8 @@ class TestSearchGames:
         """Test searching with result limit."""
         client = SteamStoreClient()
 
-        with patch.object(client, "_get", return_value=sample_search_results):
+        async_mock = AsyncMock(return_value=sample_search_results)
+        with patch.object(client, "_get", async_mock):
             results = await client.search_games_by_name("test", limit=1)
 
             assert len(results) == 1
@@ -300,7 +312,8 @@ class TestGetAppDetails:
         """Test successfully getting app details."""
         client = SteamStoreClient()
 
-        with patch.object(client, "_get", return_value=sample_game_data):
+        async_mock = AsyncMock(return_value=sample_game_data)
+        with patch.object(client, "_get", async_mock):
             result = await client.get_app_details(1245620)
 
             assert result is not None
@@ -313,7 +326,8 @@ class TestGetAppDetails:
         client = SteamStoreClient()
 
         not_found_response = {"9999999": {"success": False}}
-        with patch.object(client, "_get", return_value=not_found_response):
+        async_mock = AsyncMock(return_value=not_found_response)
+        with patch.object(client, "_get", async_mock):
             result = await client.get_app_details(9999999)
 
             assert result is None
@@ -323,7 +337,8 @@ class TestGetAppDetails:
         """Test handling API errors."""
         client = SteamStoreClient()
 
-        with patch.object(client, "_get", side_effect=Exception("API Error")):
+        async_mock = AsyncMock(side_effect=Exception("API Error"))
+        with patch.object(client, "_get", async_mock):
             result = await client.get_app_details(1245620)
 
             assert result is None
@@ -359,36 +374,43 @@ class TestAPICalls:
         """Test that search API uses configured country code."""
         client = SteamStoreClient(country_code="JP")
 
-        with patch.object(client, "_get") as mock_get:
-            mock_get.return_value = {"total": 0, "items": []}
+        async_mock = AsyncMock(return_value={"total": 0, "items": []})
+        with patch.object(client, "_get", async_mock) as mock_get:
             await client.search_games_by_name("test")
 
             # Check that cc parameter was set to JP
+            mock_get.assert_called_once()
             call_args = mock_get.call_args
-            assert call_args[1]["params"]["cc"] == "JP"
+            # _get is called with positional args: (url, params)
+            assert call_args[0][0] == "https://store.steampowered.com/api/storesearch/"
+            assert call_args[0][1]["cc"] == "JP"
 
     @pytest.mark.asyncio
     async def test_lookup_uses_country_code(self):
         """Test that lookup API uses configured country code."""
         client = SteamStoreClient(country_code="KR")
 
-        with patch.object(client, "_get") as mock_get:
-            mock_get.return_value = {"1245620": {"success": False}}
+        async_mock = AsyncMock(return_value={"1245620": {"success": False}})
+        with patch.object(client, "_get", async_mock) as mock_get:
             await client.get_app_details(1245620)
 
             # Check that cc parameter was set to KR
+            mock_get.assert_called_once()
             call_args = mock_get.call_args
-            assert call_args[1]["params"]["cc"] == "KR"
+            # _get is called with positional args: (url, params)
+            assert call_args[0][1]["cc"] == "KR"
 
     @pytest.mark.asyncio
     async def test_search_uses_language(self):
         """Test that search API uses configured language."""
         client = SteamStoreClient(language="english")
 
-        with patch.object(client, "_get") as mock_get:
-            mock_get.return_value = {"total": 0, "items": []}
+        async_mock = AsyncMock(return_value={"total": 0, "items": []})
+        with patch.object(client, "_get", async_mock) as mock_get:
             await client.search_games_by_name("test")
 
             # Check that l parameter was set to english
+            mock_get.assert_called_once()
             call_args = mock_get.call_args
-            assert call_args[1]["params"]["l"] == "english"
+            # _get is called with positional args: (url, params)
+            assert call_args[0][1]["l"] == "english"
