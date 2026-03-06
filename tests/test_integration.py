@@ -6,11 +6,11 @@ These tests are marked as 'integration' and can be skipped:
 """
 
 import time
+
 import pytest
 
 from steam_query import SteamQuery, get_game_info, get_games_info, search_games
 from steam_query.exceptions import GameNotFoundError
-
 
 # Test data: Popular, stable games
 ELDEN_RING = 1245620

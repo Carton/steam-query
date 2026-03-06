@@ -129,7 +129,9 @@ class SteamStoreClient:
                 if response.status == 429:
                     raise APIError("Rate limit exceeded", status_code=429)
                 if response.status >= 500:
-                    raise APIError(f"Server error: {response.status}", status_code=response.status)
+                    raise APIError(
+                        f"Server error: {response.status}", status_code=response.status
+                    )
                 if response.status == 404:
                     raise APIError("Not found", status_code=404)
 

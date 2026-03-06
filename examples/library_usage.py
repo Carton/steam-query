@@ -4,9 +4,6 @@ This demonstrates the simplified API for programmatic access to Steam game data.
 """
 
 from steam_query import (
-    Game,
-    Price,
-    SearchResult,
     SteamStoreClient,
     get_game_info,
     get_games_info,
@@ -29,7 +26,7 @@ def example_simple_search():
         # Price information with safe access
         if game.price:
             if game.price.is_free:
-                print(f"   💰 Price: Free to play")
+                print("   💰 Price: Free to play")
             elif game.price.is_discounted:
                 print(
                     f"   💰 Price: ${game.price.final:.2f} "
@@ -38,7 +35,11 @@ def example_simple_search():
             else:
                 print(f"   💰 Price: ${game.price.final:.2f}")
 
-        print(f"   📊 Metacritic: {game.metacritic_score}/100" if game.metacritic_score else "   📊 Metacritic: N/A")
+        print(
+            f"   📊 Metacritic: {game.metacritic_score}/100"
+            if game.metacritic_score
+            else "   📊 Metacritic: N/A"
+        )
         print(f"   🏷️  Tags: {', '.join(game.tags[:5])}")  # First 5 tags
 
 
@@ -58,7 +59,7 @@ def example_get_game_details():
 
         # System requirements
         if game.requirements:
-            print(f"\n💻 Minimum Requirements:")
+            print("\n💻 Minimum Requirements:")
             min_reqs = game.requirements.get("minimum")
             if min_reqs:
                 print(f"   OS: {min_reqs.os}")
@@ -116,7 +117,7 @@ def example_data_conversion():
     game = get_game_info(1245620)
 
     if game:
-        print(f"\n🎮 Typed Model Access:")
+        print("\n🎮 Typed Model Access:")
         print(f"   Name: {game.name}")
         print(f"   Is Free: {game.is_free}")
 

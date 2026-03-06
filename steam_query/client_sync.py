@@ -78,7 +78,9 @@ async def _search_async(
 ) -> list[dict]:
     """Internal async implementation for search."""
     async with SteamStoreClient(
-        country_code=country_code, language=language, requests_per_second=requests_per_second
+        country_code=country_code,
+        language=language,
+        requests_per_second=requests_per_second,
     ) as client:
         return await client.search_games_by_name(query, limit)
 
@@ -91,7 +93,9 @@ async def _get_game_async(
 ) -> dict | None:
     """Internal async implementation for get."""
     async with SteamStoreClient(
-        country_code=country_code, language=language, requests_per_second=requests_per_second
+        country_code=country_code,
+        language=language,
+        requests_per_second=requests_per_second,
     ) as client:
         return await client.get_app_details(app_id)
 
@@ -106,7 +110,9 @@ async def _get_batch_async(
     results = {}
 
     async with SteamStoreClient(
-        country_code=country_code, language=language, requests_per_second=requests_per_second
+        country_code=country_code,
+        language=language,
+        requests_per_second=requests_per_second,
     ) as client:
         for app_id in app_ids:
             try:
@@ -174,7 +180,13 @@ class SteamQuery:
 
         # Fetch from API
         results = asyncio.run(
-            _search_async(query, limit, self.country_code, self.language, self._requests_per_second)
+            _search_async(
+                query,
+                limit,
+                self.country_code,
+                self.language,
+                self._requests_per_second,
+            )
         )
         result_objects = [SearchResult.from_dict(r) for r in results]
 
@@ -203,7 +215,11 @@ class SteamQuery:
             return cached
 
         # Fetch from API
-        data = asyncio.run(_get_game_async(app_id, self.country_code, self.language, self._requests_per_second))
+        data = asyncio.run(
+            _get_game_async(
+                app_id, self.country_code, self.language, self._requests_per_second
+            )
+        )
 
         if data is None:
             raise GameNotFoundError(app_id=app_id)
@@ -228,7 +244,9 @@ class SteamQuery:
             Dict mapping App ID -> Game (successful queries only)
         """
         results = asyncio.run(
-            _get_batch_async(app_ids, self.country_code, self.language, self._requests_per_second)
+            _get_batch_async(
+                app_ids, self.country_code, self.language, self._requests_per_second
+            )
         )
         return {app_id: Game.from_dict(data) for app_id, data in results.items()}
 

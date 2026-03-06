@@ -11,7 +11,7 @@ from steam_query.cli import (
     format_game_json,
     setup_logging,
 )
-from steam_query.types import Game, Price, SystemRequirements
+from steam_query.types import Game, Price
 
 
 class TestFormatGameInfo:
@@ -544,18 +544,24 @@ class TestCLIRateLimit:
 
         mock_client = AsyncMock()
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.search_games_by_name = AsyncMock(return_value=[{
-            "app_id": 1,
-            "name": "Test Game",
-            "short_desc": "Test",
-            "price": None,
-            "platforms": [],
-            "metacritic": None,
-            "review_score": None
-        }])
+        mock_client.search_games_by_name = AsyncMock(
+            return_value=[
+                {
+                    "app_id": 1,
+                    "name": "Test Game",
+                    "short_desc": "Test",
+                    "price": None,
+                    "platforms": [],
+                    "metacritic": None,
+                    "review_score": None,
+                }
+            ]
+        )
         mock_client_class.return_value = mock_client
 
-        args = MagicMock(query="test", limit=10, country="US", rate_limit=0.5, output=None)
+        args = MagicMock(
+            query="test", limit=10, country="US", rate_limit=0.5, output=None
+        )
         await search_command(args)
 
         mock_client_class.assert_called_once_with(
@@ -569,28 +575,32 @@ class TestCLIRateLimit:
 
         mock_client = AsyncMock()
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.get_app_details = AsyncMock(return_value={
-            "app_id": 1,
-            "name": "Test Game",
-            "short_desc": "Test",
-            "long_desc": "Test",
-            "release_date": "2022-01-01",
-            "developers": [],
-            "publishers": [],
-            "genres": [],
-            "tags": [],
-            "metacritic_score": None,
-            "price": None,
-            "platforms": [],
-            "is_free": False,
-            "header_image": "",
-            "screenshots": [],
-            "website": None,
-            "requirements": {}
-        })
+        mock_client.get_app_details = AsyncMock(
+            return_value={
+                "app_id": 1,
+                "name": "Test Game",
+                "short_desc": "Test",
+                "long_desc": "Test",
+                "release_date": "2022-01-01",
+                "developers": [],
+                "publishers": [],
+                "genres": [],
+                "tags": [],
+                "metacritic_score": None,
+                "price": None,
+                "platforms": [],
+                "is_free": False,
+                "header_image": "",
+                "screenshots": [],
+                "website": None,
+                "requirements": {},
+            }
+        )
         mock_client_class.return_value = mock_client
 
-        args = MagicMock(app_id=1, query=None, country="KR", rate_limit=2.0, json=False, output=None)
+        args = MagicMock(
+            app_id=1, query=None, country="KR", rate_limit=2.0, json=False, output=None
+        )
         await lookup_command(args)
 
         mock_client_class.assert_called_once_with(
@@ -608,7 +618,9 @@ class TestCLIRateLimit:
         mock_client.get_app_details = AsyncMock(return_value={"app_id": 1})
         mock_client_class.return_value = mock_client
 
-        args = MagicMock(queries=["test"], input=None, country="JP", rate_limit=0.1, output=None)
+        args = MagicMock(
+            queries=["test"], input=None, country="JP", rate_limit=0.1, output=None
+        )
         await batch_command(args)
 
         mock_client_class.assert_called_once_with(

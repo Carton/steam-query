@@ -116,6 +116,8 @@ class TestExceptionIntegration:
         from steam_query.steam_client import SteamStoreClient
 
         async with SteamStoreClient() as client:
-            results = await client.search_games_by_name("NonExistentGameXYZ123", limit=10)
+            results = await client.search_games_by_name(
+                "NonExistentGameXYZ123", limit=10
+            )
 
             assert results == []

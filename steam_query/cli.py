@@ -11,9 +11,8 @@ from datetime import datetime
 
 import colorlog
 
-from .api import get_game_info, search_games
-from .types import Game
 from .steam_client import SteamStoreClient
+from .types import Game
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -142,7 +141,9 @@ def format_game_json(game: Game) -> str:
             "final": game.price.final,
             "discount_percent": game.price.discount_percent,
             "currency": game.price.currency,
-        } if game.price else None,
+        }
+        if game.price
+        else None,
         "platforms": game.platforms,
         "is_free": game.is_free,
         "header_image": game.header_image,
@@ -165,6 +166,7 @@ async def search_command(args):
 
         # Convert to SearchResult objects for type-safe access
         from .types import SearchResult
+
         results = [SearchResult.from_dict(r) for r in results_dict]
 
         print(f"\n✅ Found {len(results)} result(s):\n")
@@ -181,7 +183,7 @@ async def search_command(args):
             if game.price:
                 price = game.price
                 if price.is_free:
-                    print(f"   💰 Free")
+                    print("   💰 Free")
                 elif price.is_discounted:
                     if price.currency in {"JPY", "KRW"}:
                         print(

@@ -1,6 +1,6 @@
 """Tests for SteamQuery sync client."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -45,7 +45,7 @@ class TestSteamQuerySearch:
     @patch("steam_query.client_sync._search_async")
     def test_search_returns_results(self, mock_search):
         """Test search returns list of SearchResult"""
-        from steam_query.types import SearchResult, Price
+        from steam_query.types import SearchResult
 
         mock_results = [
             {
@@ -103,7 +103,7 @@ class TestSteamQueryGet:
     @patch("steam_query.client_sync._get_game_async")
     def test_get_returns_game(self, mock_get):
         """Test get returns Game object"""
-        from steam_query.types import Game, Price
+        from steam_query.types import Game
 
         mock_game_dict = {
             "app_id": 1245620,
@@ -249,8 +249,15 @@ class TestSteamQueryFind:
     def test_find_returns_first_result(self, mock_get, mock_search):
         """Test find returns first matching game"""
         mock_search.return_value = [
-            {"app_id": 1245620, "name": "ELDEN RING", "short_desc": "", "price": None,
-             "platforms": [], "metacritic": {"score": 96}, "review_score": None}
+            {
+                "app_id": 1245620,
+                "name": "ELDEN RING",
+                "short_desc": "",
+                "price": None,
+                "platforms": [],
+                "metacritic": {"score": 96},
+                "review_score": None,
+            }
         ]
         mock_get.return_value = {
             "app_id": 1245620,

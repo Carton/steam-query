@@ -38,7 +38,9 @@ def search_games(
         >>> for game in results:
         ...     print(f"{game.name} - {game.price}")
     """
-    return asyncio.run(_search_games_async(query, limit, country_code, language, requests_per_second))
+    return asyncio.run(
+        _search_games_async(query, limit, country_code, language, requests_per_second)
+    )
 
 
 async def _search_games_async(
@@ -50,7 +52,9 @@ async def _search_games_async(
 ) -> list[SearchResult]:
     """Internal async implementation of search_games."""
     async with SteamStoreClient(
-        country_code=country_code, language=language, requests_per_second=requests_per_second
+        country_code=country_code,
+        language=language,
+        requests_per_second=requests_per_second,
     ) as client:
         results = await client.search_games_by_name(query, limit)
         return [SearchResult.from_dict(r) for r in results]
@@ -96,7 +100,9 @@ async def _get_game_info_async(
 ) -> Game | None:
     """Internal async implementation of get_game_info."""
     async with SteamStoreClient(
-        country_code=country_code, language=language, requests_per_second=requests_per_second
+        country_code=country_code,
+        language=language,
+        requests_per_second=requests_per_second,
     ) as client:
         data = await client.get_app_details(app_id)
         return Game.from_dict(data) if data else None
@@ -141,7 +147,9 @@ async def _get_games_info_async(
 ) -> dict[int, Game]:
     """Internal async implementation of get_games_info."""
     async with SteamStoreClient(
-        country_code=country_code, language=language, requests_per_second=requests_per_second
+        country_code=country_code,
+        language=language,
+        requests_per_second=requests_per_second,
     ) as client:
         results = await client.get_games_details_batch(app_ids)
         return {app_id: Game.from_dict(data) for app_id, data in results.items()}

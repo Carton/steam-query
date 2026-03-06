@@ -1,6 +1,5 @@
 """Tests for high-level API functions (search_games, get_game_info, etc.)."""
 
-import json
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -186,7 +185,9 @@ class TestPriceModel:
         assert price_free.is_free is True
 
         # Paid game
-        price_paid = Price(initial=59.99, final=59.99, discount_percent=0, currency="USD")
+        price_paid = Price(
+            initial=59.99, final=59.99, discount_percent=0, currency="USD"
+        )
         assert price_paid.is_free is False
 
         # Free game (final is 0)
