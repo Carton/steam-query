@@ -9,80 +9,78 @@ Query detailed information for any game on the Steam store - no login required, 
 - 💰 **Price Info** - Display current price and discount information
 - 💻 **Platform Support** - Show Windows/Mac/Linux support
 - 📊 **Batch Queries** - Query multiple games at once
-- 🎯 **Exact Match** - Direct query by App ID
 - ⏱️ **Rate Limiting** - Built-in rate limiter, respects API rules
-- 📄 **JSON Output** - Export results as JSON
+- 💾 **Smart Cache** - LRU cache with TTL for better performance
+- 🎯 **Type Safe** - Complete type hints for better IDE support
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Installation
 
 ```bash
-# Clone repository
-git clone https://github.com/carton/steam-query.git
-cd steam-query
+# Install from PyPI
+pip install steam-game-query
 
-# Create virtual environment (recommended)
-python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-.venv\Scripts\activate     # Windows
-
-# Install with uv
-pip install uv
-uv pip install -e .
-
-# Or with pip
-pip install -e .
+# Or with uv
+uv pip install steam-game-query
 ```
 
-### Basic Usage
-
-#### 1. Search Games
+### CLI Usage
 
 ```bash
 # Search games
 steam-query search "Elden Ring"
 
-# Limit results
-steam-query search "Hollow Knight" -l 5
-
-# Save search results
-steam-query search "Stardew Valley" -o results.json
-```
-
-#### 2. Lookup Game Details
-
-```bash
 # Lookup by App ID
 steam-query lookup 1245620
 
-# Lookup by game name (auto-search)
-steam-query lookup -q "Elden Ring"
-
-# Query with specific country pricing
-steam-query lookup 1245620 --country US
-steam-query lookup 1245620 --country KR
-steam-query lookup 1245620 --country JP
-
-# JSON format output
-steam-query lookup -q "Hollow Knight" --json
-
-# Save details
-steam-query lookup 1245620 -o elden-ring.json
+# Batch query multiple games
+steam-query batch "Elden Ring" "Hollow Knight" -o results.json
 ```
 
-#### 3. Batch Queries
+### Library Usage
 
-```bash
-# Query multiple games
-steam-query batch "Elden Ring" "Hollow Knight" "Stardew Valley" -o results.json
+#### Functional API (Simple)
 
-# From text file (one game name per line)
-steam-query batch -i games.txt -o results.json
+```python
+from steam_query import search_games, get_game_info
 
-# With specific country pricing
-steam-query batch "Elden Ring" "Hollow Knight" -o results.json --country CN
+# Search games
+results = search_games("Elden Ring", limit=5)
+for game in results:
+    print(f"{game.name}: {game.price}")
+
+# Get game details
+game = get_game_info(1245620)
+if game:
+    print(f"{game.name} - {game.genres}")
 ```
+
+#### Object API (Advanced)
+
+```python
+from steam_query import SteamQuery
+
+# Create client with custom settings
+client = SteamQuery(
+    country_code="US",
+    cache_size=256,
+    requests_per_second=2.0
+)
+
+# Use client methods
+game = client.get(1245620)
+results = client.search("Hollow Knight", limit=10)
+games = client.get_batch([1245620, 1091500, 1593500])
+```
+
+## 📖 Documentation
+
+For detailed usage guides and API reference, see:
+
+- **[CLI Guide](docs/cli-guide.md)** - Complete command-line interface documentation
+- **[API Guide](docs/api-guide.md)** - Full library API reference and examples
+- **[Architecture](docs/architecture.md)** - Design and implementation details
 
 ## Output Example
 
@@ -102,71 +100,47 @@ steam-query batch "Elden Ring" "Hollow Knight" -o results.json --country CN
 
 💻 Supported Platforms:
    • Windows
-   • Steam Deck
 
 💰 Price: 59.99 USD
-
-📝 Description:
-   A new action RPG developed by FromSoftware Inc. and BANDAI NAMCO...
 
 🔗 Store Link: https://store.steampowered.com/app/1245620/
 ```
 
+## Configuration
 
-## Library Usage
+### Country/Region Settings
 
-You can also use `steam-query` as a Python library in your own projects!
+Control pricing region with multiple options:
 
-### Quick Start
+```bash
+# CLI parameter
+steam-query lookup 1245620 --country US
+
+# Environment variable
+export STEAM_QUERY_COUNTRY=JP
+
+# Config file
+mkdir -p ~/.steam-query
+echo '[steam-query]' > ~/.steam-query/config.toml
+echo 'country = "US"' >> ~/.steam-query/config.toml
+```
+
+**Priority**: CLI parameter > Environment variable > Config file > Default (US)
+
+Supported countries: US, CN, KR, JP, GB, DE, FR, RU, BR, AU, CA, etc.
+
+### Rate Limiting
+
+Default: 1 request/second (recommended by Steam)
 
 ```python
 from steam_query import SteamQuery
 
-# Create client
-client = SteamQuery(country_code="US")
-
-# Search games
-results = client.search("Elden Ring", limit=5)
-for game in results:
-    print(f"{game.name}: ${game.price.final if game.price else 'Free'}")
-
-# Get game details
-game = client.get(1245620)  # Elden Ring
-print(f"{game.name}")
-print(f"Genres: {', '.join(game.genres)}")
-print(f"Metacritic: {game.metacritic_score}/100")
-
-# Batch query
-games = client.get_batch([1245620, 1091500, 1593500])
-for app_id, game in games.items():
-    print(f"{app_id}: {game.name}")
-
-# Find first match
-game = client.find("Hades")
-if game:
-    print(f"Found: {game.name}")
+# Custom rate limit
+client = SteamQuery(requests_per_second=2.0)
 ```
 
-### Caching and Rate Limiting
-
-The `SteamQuery` client includes built-in LRU cache with TTL, and supports custom rate limits:
-
-```python
-# Custom cache and rate limit settings
-client = SteamQuery(
-    cache_size=256,             # Cache up to 256 items
-    cache_ttl=600,              # Cache for 10 minutes (600 seconds)
-    requests_per_second=2.0,    # Allow 2 requests per second (default is 1.0)
-)
-
-# First call - hits API
-game1 = client.get(1245620)
-
-# Second call - hits cache (much faster!)
-game2 = client.get(1245620)
-```
-
-### Error Handling
+## Error Handling
 
 ```python
 from steam_query import SteamQuery
@@ -181,31 +155,47 @@ except GameNotFoundError as e:
 except NetworkError as e:
     print(f"Network error: {e}")
 except APIError as e:
-    print(f"API error (status {e.status_code}): {e}")
+    print(f"API error: {e}")
 ```
 
-### High-Level API Functions
+## Quick Examples
 
-For simple use cases, you can use the high-level functions:
+### Example 1: Check Game Price
 
 ```python
-from steam_query import search_games, get_game_info, get_games_info
+from steam_query import get_game_info
 
-# Search games
-results = search_games("Elden Ring", limit=3, requests_per_second=2.0)
-
-# Get single game
 game = get_game_info(1245620)
-if game:
-    print(f"{game.name}: {game.genres}")
-
-# Get multiple games
-games = get_games_info([1245620, 1091500, 1593500])
+if game and game.price:
+    print(f"{game.name}: {game.price.final} {game.price.currency}")
 ```
 
-### Type Hints
+### Example 2: Search and Filter
 
-The library includes complete type hints for better IDE support:
+```python
+from steam_query import search_games
+
+results = search_games("action", limit=20)
+for game in results:
+    if game.price and game.price.final < 30:
+        print(f"{game.name}: ${game.price.final}")
+```
+
+### Example 3: Batch Processing
+
+```python
+from steam_query import SteamQuery
+
+client = SteamQuery()
+
+app_ids = [1245620, 1091500, 1593500]
+games = client.get_batch(app_ids)
+
+for app_id, game in games.items():
+    print(f"{app_id}: {game.name}")
+```
+
+## Type Hints
 
 ```python
 from steam_query import SteamQuery, Game, SearchResult
@@ -215,138 +205,12 @@ results: list[SearchResult] = client.search("Elden Ring")
 game: Game = client.get(1245620)
 ```
 
-## Configuration
+## Project Links
 
-### Country/Region Settings
-
-Steam prices vary by region. You can specify which country's pricing to use:
-
-**1. Command-line parameter (highest priority):**
-```bash
-steam-query lookup 1245620 --country US
-steam-query search "Elden Ring" --country KR
-```
-
-**2. Environment variable:**
-```bash
-export STEAM_QUERY_COUNTRY=JP
-steam-query lookup 1245620
-```
-
-**3. Config file:**
-```bash
-# Create config directory
-mkdir -p ~/.steam-query
-
-# Create config file
-cat > ~/.steam-query/config.toml << EOF
-[steam-query]
-country = "US"
-EOF
-```
-
-**Priority:** CLI parameter > Environment variable > Config file > Default (US)
-
-**Supported country codes:** US, CN, KR, JP, GB, DE, FR, RU, BR, AU, CA, etc.
-See [Steam Country Codes](https://partner.steamgames.com/doc/store/localization) for complete list.
-
-### Environment Variables
-
-```bash
-# Set default country for pricing
-export STEAM_QUERY_COUNTRY=US
-
-# Set log level
-export STEAM_QUERY_LOG_LEVEL=DEBUG
-```
-
-Default: 1 request/second (follows Steam recommendations)
-
-You can modify in code:
-```python
-from steam_query import SteamStoreClient
-
-client = SteamStoreClient(requests_per_second=2.0)  # 2 req/sec
-```
-
-## Project Structure
-
-```
-steam-query/
-├── steam_query/
-│   ├── __init__.py       # Package initialization
-│   ├── steam_client.py   # Steam API client
-│   └── cli.py           # Command-line interface
-├── pyproject.toml        # Project configuration
-└── README.md            # This file
-```
-
-## Use Cases
-
-### Use Case 1: Find Game Release Date
-
-```bash
-steam-query lookup -q "Hollow Knight" --json | jq '.game.release_date'
-```
-
-### Use Case 2: Batch Query Game List
-
-```bash
-# Create game list
-cat > games.txt << EOF
-Elden Ring
-Hollow Knight
-Stardew Valley
-Celeste
-EOF
-
-# Batch query
-steam-query batch -i games.txt -o results.json
-```
-
-## Limitations
-
-1. **Rate Limiting** - Steam Store API has no official rate limit, but 1 request/second is recommended
-2. **Search Accuracy** - Uses Steam store search, may not always be exact
-3. **Availability** - Depends on Steam store API availability
-
-## API Reference
-
-### SteamStoreClient
-
-```python
-from steam_query import SteamStoreClient
-
-# Initialize with country/region settings
-async with SteamStoreClient(country_code="US") as client:
-    # Search games
-    results = await client.search_games_by_name("Elden Ring", limit=10)
-
-    # Get details
-    game = await client.get_app_details(1245620)
-
-    # Batch query
-    games = await client.get_games_details_batch([1245620, 571860])
-
-# Parameters:
-# - requests_per_second: Rate limit (default: 1.0)
-# - country_code: Country code for pricing (e.g., "US", "CN", "KR", "JP")
-# - language: Language for results (default: "english")
-```
-
-### Configuration Priority
-
-When calling `SteamStoreClient(country_code="...")`:
-
-1. **Explicit parameter** - `SteamStoreClient(country_code="JP")`
-2. **Environment variable** - `STEAM_QUERY_COUNTRY=US`
-3. **Config file** - `~/.steam-query/config.toml`
-4. **Default** - `US`
-
-## Contributing
-
-Issues and pull requests are welcome!
+- **PyPI**: https://pypi.org/project/steam-game-query/
+- **GitHub**: https://github.com/carton/steam-query
+- **Issues**: https://github.com/carton/steam-query/issues
 
 ## License
 
-MIT License
+MIT License - see LICENSE file for details
