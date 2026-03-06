@@ -1,6 +1,6 @@
 [project]
 name = "steam-game-query"
-version = "1.0.0"
+version = "1.0.1"
 description = "Query detailed information for any Steam game - no login required"
 readme = "README.md"
 requires-python = ">=3.10"
