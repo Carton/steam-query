@@ -11,6 +11,8 @@ from datetime import datetime
 
 import colorlog
 
+from .api import get_game_info, search_games
+from .types import Game
 from .steam_client import SteamStoreClient
 
 # Setup logging
@@ -40,11 +42,11 @@ def setup_logging(verbose: bool = False):
     logging.root.addHandler(handler)
 
 
-def format_game_info(game: dict) -> str:
+def format_game_info(game: Game) -> str:
     """Format game information for display
 
     Args:
-        game: Game information dictionary
+        game: Game information object
 
     Returns:
         Formatted string
@@ -52,172 +54,148 @@ def format_game_info(game: dict) -> str:
     lines = [
         "",
         "🎮 " + "=" * 60,
-        f"  {game.get('name', 'Unknown')}",
+        f"  {game.name}",
         "🎮 " + "=" * 60,
     ]
 
     # Basic information
     lines.append("\n📋 Basic Info:")
-    lines.append(f"   App ID:      {game.get('app_id', 'N/A')}")
-    lines.append(f"   Release Date: {game.get('release_date', 'N/A')}")
-    lines.append(f"   Free:        {'Yes' if game.get('is_free') else 'No'}")
+    lines.append(f"   App ID:      {game.app_id}")
+    lines.append(f"   Release Date: {game.release_date or 'N/A'}")
+    lines.append(f"   Free:        {'Yes' if game.is_free else 'No'}")
 
-    if game.get("developers"):
-        lines.append(f"   Developer:  {', '.join(game['developers'])}")
-    if game.get("publishers"):
-        lines.append(f"   Publisher:  {', '.join(game['publishers'])}")
+    if game.developers:
+        lines.append(f"   Developer:  {', '.join(game.developers)}")
+    if game.publishers:
+        lines.append(f"   Publisher:  {', '.join(game.publishers)}")
 
-    if game.get("genres"):
-        lines.append(f"   Genres:     {', '.join(game['genres'])}")
+    if game.genres:
+        lines.append(f"   Genres:     {', '.join(game.genres)}")
 
-    if game.get("metacritic_score"):
-        score = game["metacritic_score"]
+    if game.metacritic_score:
+        score = game.metacritic_score
         emoji = "🟢" if score >= 75 else "🟡" if score >= 50 else "🔴"
         lines.append(f"   Metascore:  {emoji} {score}/100")
 
     # Platforms
-    if game.get("platforms"):
+    if game.platforms:
         lines.append("\n💻 Supported Platforms:")
-        for platform in game["platforms"]:
+        for platform in game.platforms:
             lines.append(f"   • {platform}")
 
-    # Price
-    if game.get("price"):
-        price = game["price"]
-        currency = price.get("currency", "USD")
-
-        # Format price based on currency (some don't use decimals)
-        no_decimal_currencies = {
-            "JPY",
-            "KRW",
-            "CLP",
-            "ISK",
-            "BIF",
-            "DJF",
-            "GNF",
-            "KHR",
-            "KPW",
-            "LAK",
-            "MGA",
-            "MZN",
-            "RWF",
-            "UGX",
-            "VND",
-            "VUV",
-            "XAF",
-            "XOF",
-            "XPF",
-        }
-
-        if currency in no_decimal_currencies:
-            # No decimals for these currencies
-            if price.get("discount_percent", 0) > 0:
+    # Price - use Price model properties
+    if game.price:
+        price = game.price
+        if price.is_free:
+            lines.append("\n💰 Price: Free")
+        elif price.is_discounted:
+            # Price has discount
+            if price.currency in {"JPY", "KRW"}:
                 lines.append(
-                    f"\n💰 Price: {int(price['final'])} {currency} (was {int(price['initial'])} {currency}, -{price['discount_percent']}%)"
+                    f"\n💰 Price: {int(price.final)} {price.currency} "
+                    f"(was {int(price.initial)} {price.currency}, -{price.discount_percent}%)"
                 )
             else:
-                lines.append(f"\n💰 Price: {int(price['final'])} {currency}")
+                lines.append(
+                    f"\n💰 Price: {price.final:.2f} {price.currency} "
+                    f"(was {price.initial:.2f} {price.currency}, -{price.discount_percent}%)"
+                )
         else:
-            # Standard 2 decimal places
-            if price.get("discount_percent", 0) > 0:
-                lines.append(
-                    f"\n💰 Price: {price['final']:.2f} {currency} (was {price['initial']:.2f} {currency}, -{price['discount_percent']}%)"
-                )
+            # Regular price
+            if price.currency in {"JPY", "KRW"}:
+                lines.append(f"\n💰 Price: {int(price.final)} {price.currency}")
             else:
-                lines.append(f"\n💰 Price: {price['final']:.2f} {currency}")
-    elif game.get("is_free"):
+                lines.append(f"\n💰 Price: {price.final:.2f} {price.currency}")
+    elif game.is_free:
         lines.append("\n💰 Price: Free")
 
     # Short description
-    if game.get("short_desc"):
-        desc = game["short_desc"]
+    if game.short_desc:
+        desc = game.short_desc
         if len(desc) > 100:
             desc = desc[:97] + "..."
         lines.append("\n📝 Description:")
         lines.append(f"   {desc}")
 
     # Link
-    app_id = game.get("app_id")
-    if app_id:
-        lines.append(f"\n🔗 Store Link: https://store.steampowered.com/app/{app_id}/")
+    lines.append(f"\n🔗 Store Link: https://store.steampowered.com/app/{game.app_id}/")
 
     lines.append("")
     return "\n".join(lines)
 
 
-def format_game_json(game: dict) -> str:
+def format_game_json(game: Game) -> str:
     """Format as JSON string"""
-    # Remove some redundant fields
-    game_copy = game.copy()
-    if "long_desc" in game_copy:
-        del game_copy["long_desc"]
-    if "screenshots" in game_copy:
-        del game_copy["screenshots"]
+    # Convert Game to dict and remove some redundant fields for display
+    game_dict = {
+        "app_id": game.app_id,
+        "name": game.name,
+        "short_desc": game.short_desc,
+        "release_date": game.release_date,
+        "developers": game.developers,
+        "publishers": game.publishers,
+        "genres": game.genres,
+        "tags": game.tags,
+        "metacritic_score": game.metacritic_score,
+        "price": {
+            "initial": game.price.initial,
+            "final": game.price.final,
+            "discount_percent": game.price.discount_percent,
+            "currency": game.price.currency,
+        } if game.price else None,
+        "platforms": game.platforms,
+        "is_free": game.is_free,
+        "header_image": game.header_image,
+        "website": game.website,
+    }
 
-    return json.dumps(game_copy, indent=2, ensure_ascii=False)
+    return json.dumps(game_dict, indent=2, ensure_ascii=False)
 
 
 async def search_command(args):
     """Search games command"""
     async with SteamStoreClient(country_code=args.country) as client:
-        results = await client.search_games_by_name(args.query, limit=args.limit)
+        results_dict = await client.search_games_by_name(args.query, limit=args.limit)
 
-        if not results:
+        if not results_dict:
             print(f"❌ No matching games found: {args.query}")
             return 1
+
+        # Convert to SearchResult objects for type-safe access
+        from .types import SearchResult
+        results = [SearchResult.from_dict(r) for r in results_dict]
 
         print(f"\n✅ Found {len(results)} result(s):\n")
 
         for i, game in enumerate(results, 1):
-            print(f"{i}. {game['name']} (App ID: {game['app_id']})")
-            if game.get("short_desc"):
+            print(f"{i}. {game.name} (App ID: {game.app_id})")
+            if game.short_desc:
                 desc = (
-                    game["short_desc"][:80] + "..."
-                    if len(game["short_desc"]) > 80
-                    else game["short_desc"]
+                    game.short_desc[:80] + "..."
+                    if len(game.short_desc) > 80
+                    else game.short_desc
                 )
                 print(f"   {desc}")
-            if game.get("price") and game["price"].get("final") is not None:
-                price = game["price"]
-                currency = price.get("currency", "USD")
-
-                # No decimals for certain currencies
-                no_decimal_currencies = {
-                    "JPY",
-                    "KRW",
-                    "CLP",
-                    "ISK",
-                    "BIF",
-                    "DJF",
-                    "GNF",
-                    "KHR",
-                    "KPW",
-                    "LAK",
-                    "MGA",
-                    "MZN",
-                    "RWF",
-                    "UGX",
-                    "VND",
-                    "VUV",
-                    "XAF",
-                    "XOF",
-                    "XPF",
-                }
-
-                if currency in no_decimal_currencies:
-                    if price.get("discount_percent", 0) > 0:
+            if game.price:
+                price = game.price
+                if price.is_free:
+                    print(f"   💰 Free")
+                elif price.is_discounted:
+                    if price.currency in {"JPY", "KRW"}:
                         print(
-                            f"   💰 {int(price['final'])} {currency} (was {int(price['initial'])} {currency}, -{price['discount_percent']}%)"
+                            f"   💰 {int(price.final)} {price.currency} "
+                            f"(was {int(price.initial)} {price.currency}, -{price.discount_percent}%)"
                         )
                     else:
-                        print(f"   💰 {int(price['final'])} {currency}")
+                        print(
+                            f"   💰 {price.final:.2f} {price.currency} "
+                            f"(was {price.initial:.2f} {price.currency}, -{price.discount_percent}%)"
+                        )
                 else:
-                    if price.get("discount_percent", 0) > 0:
-                        print(
-                            f"   💰 {price['final']:.2f} {currency} (was {price['initial']:.2f} {currency}, -{price['discount_percent']}%)"
-                        )
+                    if price.currency in {"JPY", "KRW"}:
+                        print(f"   💰 {int(price.final)} {price.currency}")
                     else:
-                        print(f"   💰 {price['final']:.2f} {currency}")
+                        print(f"   💰 {price.final:.2f} {price.currency}")
             else:
                 print("   💰 Free or not priced")
             print()
@@ -256,11 +234,14 @@ async def lookup_command(args):
 
         # Get detailed information
         print("⏳ Getting detailed information...")
-        game = await client.get_app_details(app_id)
+        game_dict = await client.get_app_details(app_id)
 
-        if not game:
+        if not game_dict:
             print(f"❌ Unable to get game details (App ID: {app_id})")
             return 1
+
+        # Convert to Game object for type-safe access
+        game = Game.from_dict(game_dict)
 
         # Display results
         if args.json:
@@ -273,7 +254,7 @@ async def lookup_command(args):
             output_data = {
                 "app_id": app_id,
                 "timestamp": datetime.now().isoformat(),
-                "game": game,
+                "game": game_dict,  # Save the original dict for JSON compatibility
             }
             with open(args.output, "w", encoding="utf-8") as f:
                 json.dump(output_data, f, indent=2, ensure_ascii=False)

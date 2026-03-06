@@ -5,7 +5,6 @@ async client lifecycle automatically, making the library easier to use.
 """
 
 import asyncio
-from typing import Any
 
 from steam_query.steam_client import SteamStoreClient
 from steam_query.types import Game, SearchResult
@@ -137,74 +136,3 @@ async def _get_games_info_async(
     ) as client:
         results = await client.get_games_details_batch(app_ids)
         return {app_id: Game.from_dict(data) for app_id, data in results.items()}
-
-
-# Backward compatibility: also support dict-based results
-def search_games_dict(
-    query: str,
-    limit: int = 10,
-    country_code: str | None = None,
-    language: str = "english",
-) -> list[dict[str, Any]]:
-    """Search for Steam games (returns raw dicts for backward compatibility).
-
-    Args:
-        query: Search keyword
-        limit: Maximum number of results
-        country_code: Country code for pricing
-        language: Language for results
-
-    Returns:
-        List of game information dictionaries
-
-    Note:
-        Prefer using search_games() which returns typed SearchResult objects.
-        This function exists for backward compatibility.
-    """
-    return asyncio.run(
-        _search_games_dict_async(query, limit, country_code, language)
-    )
-
-
-async def _search_games_dict_async(
-    query: str, limit: int, country_code: str | None, language: str
-) -> list[dict[str, Any]]:
-    """Internal async implementation of search_games_dict."""
-    async with SteamStoreClient(
-        country_code=country_code, language=language
-    ) as client:
-        return await client.search_games_by_name(query, limit)
-
-
-def get_game_info_dict(
-    app_id: int,
-    country_code: str | None = None,
-    language: str = "english",
-) -> dict[str, Any] | None:
-    """Get detailed game information (returns raw dict for backward compatibility).
-
-    Args:
-        app_id: Steam App ID
-        country_code: Country code for pricing
-        language: Language for results
-
-    Returns:
-        Game information dictionary, or None if not found
-
-    Note:
-        Prefer using get_game_info() which returns a typed Game object.
-        This function exists for backward compatibility.
-    """
-    return asyncio.run(
-        _get_game_info_dict_async(app_id, country_code, language)
-    )
-
-
-async def _get_game_info_dict_async(
-    app_id: int, country_code: str | None, language: str
-) -> dict[str, Any] | None:
-    """Internal async implementation of get_game_info_dict."""
-    async with SteamStoreClient(
-        country_code=country_code, language=language
-    ) as client:
-        return await client.get_app_details(app_id)

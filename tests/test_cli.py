@@ -11,6 +11,7 @@ from steam_query.cli import (
     format_game_json,
     setup_logging,
 )
+from steam_query.types import Game, Price, SystemRequirements
 
 
 class TestFormatGameInfo:
@@ -18,17 +19,25 @@ class TestFormatGameInfo:
 
     def test_format_basic_game_info(self):
         """Test formatting basic game information."""
-        game = {
-            "app_id": 1245620,
-            "name": "ELDEN RING",
-            "release_date": "2022-02-25",
-            "is_free": False,
-            "developers": ["FromSoftware Inc."],
-            "publishers": ["BANDAI NAMCO"],
-            "genres": ["Action RPG", "Adventure"],
-            "metacritic_score": 96,
-            "platforms": ["Windows"],
-        }
+        game = Game(
+            app_id=1245620,
+            name="ELDEN RING",
+            short_desc="An expansive fantasy action-RPG",
+            long_desc="...",
+            release_date="2022-02-25",
+            developers=["FromSoftware Inc."],
+            publishers=["BANDAI NAMCO"],
+            genres=["Action RPG", "Adventure"],
+            tags=[],
+            metacritic_score=96,
+            price=None,
+            platforms=["Windows"],
+            is_free=False,
+            header_image="",
+            screenshots=[],
+            website=None,
+            requirements={},
+        )
 
         result = format_game_info(game)
 
@@ -41,16 +50,31 @@ class TestFormatGameInfo:
 
     def test_format_price_with_discount(self):
         """Test formatting price with discount."""
-        game = {
-            "app_id": 1245620,
-            "name": "Test Game",
-            "price": {
-                "initial": 59.99,
-                "final": 29.99,
-                "discount_percent": 50,
-                "currency": "USD",
-            },
-        }
+        price = Price(
+            initial=59.99,
+            final=29.99,
+            discount_percent=50,
+            currency="USD",
+        )
+        game = Game(
+            app_id=1245620,
+            name="Test Game",
+            short_desc="Test description",
+            long_desc="...",
+            release_date=None,
+            developers=[],
+            publishers=[],
+            genres=[],
+            tags=[],
+            metacritic_score=None,
+            price=price,
+            platforms=[],
+            is_free=False,
+            header_image="",
+            screenshots=[],
+            website=None,
+            requirements={},
+        )
 
         result = format_game_info(game)
 
@@ -60,16 +84,31 @@ class TestFormatGameInfo:
 
     def test_format_price_without_discount(self):
         """Test formatting price without discount."""
-        game = {
-            "app_id": 1245620,
-            "name": "Test Game",
-            "price": {
-                "initial": 59.99,
-                "final": 59.99,
-                "discount_percent": 0,
-                "currency": "USD",
-            },
-        }
+        price = Price(
+            initial=59.99,
+            final=59.99,
+            discount_percent=0,
+            currency="USD",
+        )
+        game = Game(
+            app_id=1245620,
+            name="Test Game",
+            short_desc="Test description",
+            long_desc="...",
+            release_date=None,
+            developers=[],
+            publishers=[],
+            genres=[],
+            tags=[],
+            metacritic_score=None,
+            price=price,
+            platforms=[],
+            is_free=False,
+            header_image="",
+            screenshots=[],
+            website=None,
+            requirements={},
+        )
 
         result = format_game_info(game)
 
@@ -78,16 +117,31 @@ class TestFormatGameInfo:
 
     def test_format_price_no_decimals(self):
         """Test formatting price for currency without decimals (JPY)."""
-        game = {
-            "app_id": 1245620,
-            "name": "Test Game",
-            "price": {
-                "initial": 6000,
-                "final": 6000,
-                "discount_percent": 0,
-                "currency": "JPY",
-            },
-        }
+        price = Price(
+            initial=6000,
+            final=6000,
+            discount_percent=0,
+            currency="JPY",
+        )
+        game = Game(
+            app_id=1245620,
+            name="Test Game",
+            short_desc="Test description",
+            long_desc="...",
+            release_date=None,
+            developers=[],
+            publishers=[],
+            genres=[],
+            tags=[],
+            metacritic_score=None,
+            price=price,
+            platforms=[],
+            is_free=False,
+            header_image="",
+            screenshots=[],
+            website=None,
+            requirements={},
+        )
 
         result = format_game_info(game)
 
@@ -97,11 +151,25 @@ class TestFormatGameInfo:
 
     def test_format_free_game(self):
         """Test formatting free game."""
-        game = {
-            "app_id": 1245620,
-            "name": "Free Game",
-            "is_free": True,
-        }
+        game = Game(
+            app_id=1245620,
+            name="Free Game",
+            short_desc="",
+            long_desc="",
+            release_date=None,
+            developers=[],
+            publishers=[],
+            genres=[],
+            tags=[],
+            metacritic_score=None,
+            price=None,
+            platforms=[],
+            is_free=True,
+            header_image="",
+            screenshots=[],
+            website=None,
+            requirements={},
+        )
 
         result = format_game_info(game)
 
@@ -110,17 +178,71 @@ class TestFormatGameInfo:
     def test_format_metacritic_score_colors(self):
         """Test Metacritic score emoji coloring."""
         # High score (green)
-        game_high = {"app_id": 1, "name": "Test", "metacritic_score": 90}
+        game_high = Game(
+            app_id=1,
+            name="Test",
+            short_desc="",
+            long_desc="",
+            release_date=None,
+            developers=[],
+            publishers=[],
+            genres=[],
+            tags=[],
+            metacritic_score=90,
+            price=None,
+            platforms=[],
+            is_free=False,
+            header_image="",
+            screenshots=[],
+            website=None,
+            requirements={},
+        )
         result_high = format_game_info(game_high)
         assert "🟢" in result_high
 
         # Medium score (yellow)
-        game_med = {"app_id": 1, "name": "Test", "metacritic_score": 65}
+        game_med = Game(
+            app_id=1,
+            name="Test",
+            short_desc="",
+            long_desc="",
+            release_date=None,
+            developers=[],
+            publishers=[],
+            genres=[],
+            tags=[],
+            metacritic_score=65,
+            price=None,
+            platforms=[],
+            is_free=False,
+            header_image="",
+            screenshots=[],
+            website=None,
+            requirements={},
+        )
         result_med = format_game_info(game_med)
         assert "🟡" in result_med
 
         # Low score (red)
-        game_low = {"app_id": 1, "name": "Test", "metacritic_score": 40}
+        game_low = Game(
+            app_id=1,
+            name="Test",
+            short_desc="",
+            long_desc="",
+            release_date=None,
+            developers=[],
+            publishers=[],
+            genres=[],
+            tags=[],
+            metacritic_score=40,
+            price=None,
+            platforms=[],
+            is_free=False,
+            header_image="",
+            screenshots=[],
+            website=None,
+            requirements={},
+        )
         result_low = format_game_info(game_low)
         assert "🔴" in result_low
 
@@ -130,12 +252,25 @@ class TestFormatGameJson:
 
     def test_format_json_removes_long_desc(self):
         """Test that long_desc is removed from JSON output."""
-        game = {
-            "app_id": 1245620,
-            "name": "Test Game",
-            "long_desc": "A" * 1000,
-            "short_desc": "Short description",
-        }
+        game = Game(
+            app_id=1245620,
+            name="Test Game",
+            long_desc="A" * 1000,
+            short_desc="Short description",
+            release_date=None,
+            developers=[],
+            publishers=[],
+            genres=[],
+            tags=[],
+            metacritic_score=None,
+            price=None,
+            platforms=[],
+            is_free=False,
+            header_image="",
+            screenshots=["screenshot1.jpg", "screenshot2.jpg"],  # Should be removed
+            website=None,
+            requirements={},
+        )
 
         result = format_game_json(game)
         data = json.loads(result)
@@ -145,11 +280,25 @@ class TestFormatGameJson:
 
     def test_format_json_removes_screenshots(self):
         """Test that screenshots are removed from JSON output."""
-        game = {
-            "app_id": 1245620,
-            "name": "Test Game",
-            "screenshots": ["screenshot1.jpg", "screenshot2.jpg"],
-        }
+        game = Game(
+            app_id=1245620,
+            name="Test Game",
+            long_desc="",
+            short_desc="Test",
+            release_date=None,
+            developers=[],
+            publishers=[],
+            genres=[],
+            tags=[],
+            metacritic_score=None,
+            price=None,
+            platforms=[],
+            is_free=False,
+            header_image="",
+            screenshots=["screenshot1.jpg", "screenshot2.jpg"],
+            website=None,
+            requirements={},
+        )
 
         result = format_game_json(game)
         data = json.loads(result)
@@ -158,11 +307,31 @@ class TestFormatGameJson:
 
     def test_format_json_valid_json(self):
         """Test that output is valid JSON."""
-        game = {
-            "app_id": 1245620,
-            "name": "Test Game",
-            "price": {"final": 29.99, "currency": "USD"},
-        }
+        price = Price(
+            initial=None,
+            final=29.99,
+            discount_percent=0,
+            currency="USD",
+        )
+        game = Game(
+            app_id=1245620,
+            name="Test Game",
+            long_desc="",
+            short_desc="Test",
+            release_date=None,
+            developers=[],
+            publishers=[],
+            genres=[],
+            tags=[],
+            metacritic_score=None,
+            price=price,
+            platforms=[],
+            is_free=False,
+            header_image="",
+            screenshots=[],
+            website=None,
+            requirements={},
+        )
 
         result = format_game_json(game)
 

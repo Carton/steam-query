@@ -25,19 +25,13 @@ Advanced Usage (async):
     >>> async def main():
     ...     async with SteamStoreClient(country_code="JP") as client:
     ...         results = await client.search_games_by_name("Hollow Knight", limit=5)
-    ...         for game in results:
-    ...             print(f"{game['name']}: {game.get('price')}")
+    ...         for game_dict in results:
+    ...             print(f"{game_dict['name']}: {game_dict.get('price')}")
     >>>
     >>> asyncio.run(main())
 """
 
-from steam_query.api import (
-    get_game_info,
-    get_game_info_dict,
-    get_games_info,
-    search_games,
-    search_games_dict,
-)
+from steam_query.api import get_game_info, get_games_info, search_games
 from steam_query.steam_client import SteamStoreClient
 from steam_query.types import Game, Price, SearchResult, SystemRequirements
 
@@ -52,9 +46,6 @@ __all__ = [
     "search_games",
     "get_game_info",
     "get_games_info",
-    # Backward compatibility (dict-based)
-    "search_games_dict",
-    "get_game_info_dict",
     # Data models
     "Game",
     "SearchResult",
