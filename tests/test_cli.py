@@ -9,9 +9,73 @@ import pytest
 from steam_query.cli import (
     format_game_info,
     format_game_json,
+    main,
     setup_logging,
 )
 from steam_query.types import Game, Price
+
+
+class TestCLIParser:
+    """Exercise the real parser through the CLI entry point."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("arguments", "queries", "input_file"),
+        [
+            (["Elden Ring", "Hollow Knight"], ["Elden Ring", "Hollow Knight"], None),
+            (["-i", "games.txt"], [], "games.txt"),
+        ],
+    )
+    async def test_batch_accepts_one_input_source(self, arguments, queries, input_file):
+        argv = ["steam-query", "batch", *arguments, "-o", "out.json"]
+        with (
+            patch("sys.argv", argv),
+            patch("steam_query.cli.setup_logging"),
+            patch("steam_query.cli.batch_command", new_callable=AsyncMock) as command,
+        ):
+            command.return_value = 0
+
+            assert await main() == 0
+
+            command.assert_awaited_once()
+            args = command.call_args.args[0]
+            assert args.queries == queries
+            assert args.input == input_file
+            assert args.output == "out.json"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "arguments",
+        [
+            ["Elden Ring", "--input", "games.txt"],
+            ["Elden Ring", "--input", ""],
+            [],
+        ],
+    )
+    async def test_batch_rejects_invalid_input_sources(self, arguments, capsys):
+        argv = ["steam-query", "batch", *arguments, "-o", "out.json"]
+        with (
+            patch("sys.argv", argv),
+            patch("steam_query.cli.setup_logging") as logging,
+            patch("steam_query.cli.batch_command", new_callable=AsyncMock) as command,
+        ):
+            with pytest.raises(SystemExit) as exc_info:
+                await main()
+
+            assert exc_info.value.code == 2
+            assert "exactly one of game names or --input" in capsys.readouterr().err
+            logging.assert_not_called()
+            command.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("arguments", [["--help"], ["batch", "--help"]])
+    async def test_help_starts_without_error(self, arguments, capsys):
+        with patch("sys.argv", ["steam-query", *arguments]):
+            with pytest.raises(SystemExit) as exc_info:
+                await main()
+
+        assert exc_info.value.code == 0
+        assert "usage: steam-query" in capsys.readouterr().out
 
 
 class TestFormatGameInfo:

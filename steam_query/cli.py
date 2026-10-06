@@ -431,15 +431,18 @@ More info: https://github.com/carton/steam-query
 
     # Batch query command
     batch_parser = subparsers.add_parser("batch", help="Query multiple games in batch")
-    batch_input = batch_parser.add_mutually_exclusive_group(required=True)
-    batch_input.add_argument("queries", nargs="*", help="List of game names")
-    batch_input.add_argument(
+    batch_parser.add_argument("queries", nargs="*", help="List of game names")
+    batch_parser.add_argument(
         "-i", "--input", help="Input file (JSON or text, one game name per line)"
     )
     batch_parser.add_argument("-o", "--output", required=True, help="Output JSON file")
     batch_parser.add_argument("-c", "--country", **country_kwargs)  # type: ignore[arg-type]
 
     args = parser.parse_args()
+
+    # A variable-length positional cannot be in an argparse mutually exclusive group.
+    if args.command == "batch" and bool(args.queries) == (args.input is not None):
+        batch_parser.error("provide exactly one of game names or --input")
 
     if not args.command:
         parser.print_help()
