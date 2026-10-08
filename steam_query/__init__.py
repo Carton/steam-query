@@ -36,7 +36,7 @@ from steam_query.client_sync import SteamQuery
 from steam_query.steam_client import SteamStoreClient
 from steam_query.types import Game, Price, SearchResult, SystemRequirements
 
-__version__ = "1.0.0"
+__version__ = "1.0.2"
 
 __all__ = [
     # Version
